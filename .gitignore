@@ -1,0 +1,23 @@
+# Virtual environment
+env/
+venv/
+ENV/
+.venv/
+
+# Environment variables & secrets
+.env
+
+# Python bytecode & cache
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# Chroma vector database & SQLite binaries
+**/chroma_db/
+*.sqlite3
+
+# IDE & OS files
+.DS_Store
+.vscode/
+.idea/

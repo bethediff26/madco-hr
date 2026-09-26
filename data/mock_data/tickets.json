@@ -1,0 +1,18 @@
+[
+  {
+    "ticket_id": "TICK-8796",
+    "employee_id": "EMP-101",
+    "issue_type": "PTO Inquiry",
+    "details": "Requesting clarity on rollover days",
+    "status": "Open",
+    "created_at": "2026-09-19 16:25:34"
+  },
+  {
+    "ticket_id": "TICK-1195",
+    "employee_id": "EMP-101",
+    "issue_type": "PTO Inquiry",
+    "details": "Requesting clarity on rollover days",
+    "status": "Open",
+    "created_at": "2026-09-19 16:36:51"
+  }
+]

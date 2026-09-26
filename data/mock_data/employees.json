@@ -1,0 +1,52 @@
+[
+  {
+    "employee_id": "EMP-101",
+    "name": "Alice Johnson",
+    "email": "alice.johnson@example.com",
+    "role": "Software Engineer",
+    "department": "Engineering",
+    "location": "New York",
+    "manager_id": "EMP-105",
+    "hire_date": "2021-03-15"
+  },
+  {
+    "employee_id": "EMP-102",
+    "name": "Bob Smith",
+    "email": "bob.smith@example.com",
+    "role": "HR Specialist",
+    "department": "Human Resources",
+    "location": "London",
+    "manager_id": "EMP-105",
+    "hire_date": "2022-06-01"
+  },
+  {
+    "employee_id": "EMP-103",
+    "name": "Charlie Brown",
+    "email": "charlie.brown@example.com",
+    "role": "Product Manager",
+    "department": "Product",
+    "location": "San Francisco",
+    "manager_id": "EMP-105",
+    "hire_date": "2020-11-20"
+  },
+  {
+    "employee_id": "EMP-104",
+    "name": "Diana Prince",
+    "email": "diana.prince@example.com",
+    "role": "UX Designer",
+    "department": "Design",
+    "location": "Berlin",
+    "manager_id": "EMP-105",
+    "hire_date": "2023-01-10"
+  },
+  {
+    "employee_id": "EMP-105",
+    "name": "Eve White",
+    "email": "eve.white@example.com",
+    "role": "Director of Operations",
+    "department": "Operations",
+    "location": "Tokyo",
+    "manager_id": null,
+    "hire_date": "2018-05-05"
+  }
+]

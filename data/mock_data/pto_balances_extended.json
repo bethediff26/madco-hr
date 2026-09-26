@@ -1,0 +1,137 @@
+[
+  {
+    "employee_id": "EMP-101",
+    "annual_allocation_days": 20,
+    "used_days": 5,
+    "pending_days": 2,
+    "available_days": 13,
+    "carryover_days": 3,
+    "total_accrued": 23
+  },
+  {
+    "employee_id": "EMP-102",
+    "annual_allocation_days": 20,
+    "used_days": 10,
+    "pending_days": 0,
+    "available_days": 10,
+    "carryover_days": 2,
+    "total_accrued": 22
+  },
+  {
+    "employee_id": "EMP-103",
+    "annual_allocation_days": 25,
+    "used_days": 12,
+    "pending_days": 3,
+    "available_days": 10,
+    "carryover_days": 5,
+    "total_accrued": 30
+  },
+  {
+    "employee_id": "EMP-104",
+    "annual_allocation_days": 20,
+    "used_days": 2,
+    "pending_days": 1,
+    "available_days": 17,
+    "carryover_days": 4,
+    "total_accrued": 21
+  },
+  {
+    "employee_id": "EMP-105",
+    "annual_allocation_days": 25,
+    "used_days": 8,
+    "pending_days": 5,
+    "available_days": 12,
+    "carryover_days": 3,
+    "total_accrued": 28
+  },
+  {
+    "employee_id": "EMP-106",
+    "annual_allocation_days": 20,
+    "used_days": 15,
+    "pending_days": 1,
+    "available_days": 4,
+    "carryover_days": 2,
+    "total_accrued": 22
+  },
+  {
+    "employee_id": "EMP-107",
+    "annual_allocation_days": 15,
+    "used_days": 8,
+    "pending_days": 0,
+    "available_days": 7,
+    "carryover_days": 1,
+    "total_accrued": 16
+  },
+  {
+    "employee_id": "EMP-108",
+    "annual_allocation_days": 20,
+    "used_days": 12,
+    "pending_days": 2,
+    "available_days": 6,
+    "carryover_days": 3,
+    "total_accrued": 23
+  },
+  {
+    "employee_id": "EMP-109",
+    "annual_allocation_days": 25,
+    "used_days": 5,
+    "pending_days": 3,
+    "available_days": 17,
+    "carryover_days": 4,
+    "total_accrued": 29
+  },
+  {
+    "employee_id": "EMP-110",
+    "annual_allocation_days": 20,
+    "used_days": 18,
+    "pending_days": 0,
+    "available_days": 2,
+    "carryover_days": 1,
+    "total_accrued": 21
+  },
+  {
+    "employee_id": "EMP-111",
+    "annual_allocation_days": 25,
+    "used_days": 10,
+    "pending_days": 2,
+    "available_days": 13,
+    "carryover_days": 3,
+    "total_accrued": 28
+  },
+  {
+    "employee_id": "EMP-112",
+    "annual_allocation_days": 20,
+    "used_days": 6,
+    "pending_days": 1,
+    "available_days": 13,
+    "carryover_days": 2,
+    "total_accrued": 22
+  },
+  {
+    "employee_id": "EMP-113",
+    "annual_allocation_days": 20,
+    "used_days": 9,
+    "pending_days": 2,
+    "available_days": 9,
+    "carryover_days": 4,
+    "total_accrued": 24
+  },
+  {
+    "employee_id": "EMP-114",
+    "annual_allocation_days": 15,
+    "used_days": 3,
+    "pending_days": 0,
+    "available_days": 12,
+    "carryover_days": 2,
+    "total_accrued": 17
+  },
+  {
+    "employee_id": "EMP-115",
+    "annual_allocation_days": 20,
+    "used_days": 14,
+    "pending_days": 3,
+    "available_days": 3,
+    "carryover_days": 3,
+    "total_accrued": 23
+  }
+]

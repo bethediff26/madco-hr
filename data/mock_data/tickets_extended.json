@@ -1,0 +1,92 @@
+[
+  {
+    "ticket_id": "TICK-8796",
+    "employee_id": "EMP-101",
+    "issue_type": "PTO Inquiry",
+    "details": "Requesting clarity on rollover days",
+    "status": "Open",
+    "created_at": "2026-09-19 16:25:34",
+    "updated_at": "2026-09-19 16:25:34"
+  },
+  {
+    "ticket_id": "TICK-1195",
+    "employee_id": "EMP-101",
+    "issue_type": "PTO Inquiry",
+    "details": "Requesting clarity on rollover days",
+    "status": "Open",
+    "created_at": "2026-09-19 16:36:51",
+    "updated_at": "2026-09-19 16:36:51"
+  },
+  {
+    "ticket_id": "TICK-2345",
+    "employee_id": "EMP-102",
+    "issue_type": "Benefits Enrollment",
+    "details": "Need assistance with dental plan enrollment",
+    "status": "Closed",
+    "created_at": "2026-09-18 10:15:22",
+    "updated_at": "2026-09-18 14:30:45"
+  },
+  {
+    "ticket_id": "TICK-3456",
+    "employee_id": "EMP-103",
+    "issue_type": "Remote Work Policy",
+    "details": "Request for hybrid work arrangement approval",
+    "status": "In Progress",
+    "created_at": "2026-09-20 09:45:12",
+    "updated_at": "2026-09-20 11:20:33"
+  },
+  {
+    "ticket_id": "TICK-4567",
+    "employee_id": "EMP-104",
+    "issue_type": "PTO Request",
+    "details": "Requesting 3 days PTO for personal reasons",
+    "status": "Approved",
+    "created_at": "2026-09-17 15:30:45",
+    "updated_at": "2026-09-17 16:45:22"
+  },
+  {
+    "ticket_id": "TICK-5678",
+    "employee_id": "EMP-105",
+    "issue_type": "Equipment Request",
+    "details": "Requesting new laptop for remote work",
+    "status": "Open",
+    "created_at": "2026-09-21 11:20:34",
+    "updated_at": "2026-09-21 11:20:34"
+  },
+  {
+    "ticket_id": "TICK-6789",
+    "employee_id": "EMP-106",
+    "issue_type": "Leave of Absence",
+    "details": "Requesting medical leave for family emergency",
+    "status": "Pending Manager Approval",
+    "created_at": "2026-09-15 14:15:23",
+    "updated_at": "2026-09-15 14:15:23"
+  },
+  {
+    "ticket_id": "TICK-7890",
+    "employee_id": "EMP-107",
+    "issue_type": "Benefits Inquiry",
+    "details": "Questions about 401k contribution limits",
+    "status": "Closed",
+    "created_at": "2026-09-16 08:30:15",
+    "updated_at": "2026-09-16 10:45:30"
+  },
+  {
+    "ticket_id": "TICK-8901",
+    "employee_id": "EMP-108",
+    "issue_type": "PTO Request",
+    "details": "Requesting vacation days for upcoming trip",
+    "status": "Approved",
+    "created_at": "2026-09-14 13:25:45",
+    "updated_at": "2026-09-14 14:10:22"
+  },
+  {
+    "ticket_id": "TICK-9012",
+    "employee_id": "EMP-109",
+    "issue_type": "Data Security",
+    "details": "Concerns about cloud storage security",
+    "status": "Open",
+    "created_at": "2026-09-20 16:45:33",
+    "updated_at": "2026-09-20 16:45:33"
+  }
+]

@@ -1,0 +1,140 @@
+"""Policy RAG pipeline for document retrieval and search."""
+
+import os
+import chromadb
+from chromadb.utils import embedding_functions
+from typing import List, Dict, Any
+from rag.parser import load_and_parse_policies
+
+class PolicyRAG:
+    """Retrieval-Augmented Generation for policy documents.
+
+    Provides embedding-based retrieval over policy documents using
+    ChromaDB for storage and sentence-transformers for embeddings.
+    """
+
+    def __init__(self, db_path: str = "data/chroma_db"):
+        """Initialize PolicyRAG with ChromaDB instance.
+
+        Args:
+            db_path: Path to store the persistent ChromaDB database
+        """
+        # Initialize persistent ChromaDB client
+        self.client = chromadb.PersistentClient(path=db_path)
+
+        # Use sentence-transformers for local embeddings
+        self.embedding_fn = embedding_functions.SentenceTransformerEmbeddingFunction(
+            model_name="all-MiniLM-L6-v2"
+        )
+
+        # Create or get collection
+        self.collection_name = "policy_documents"
+        self.collection = self.client.get_or_create_collection(
+            name=self.collection_name,
+            embedding_function=self.embedding_fn
+        )
+
+    def build_index(self, policies_dir: str = "data/policies"):
+        """Build index of policy documents.
+
+        Parses all policies from the specified directory, computes embeddings,
+        and stores them in ChromaDB.
+
+        Args:
+            policies_dir: Directory containing policy documents
+        """
+        print(f"Building index from {policies_dir}...")
+
+        # Load and parse policies into chunks
+        chunks = load_and_parse_policies(policies_dir)
+
+        if not chunks:
+            print("No chunks found to index.")
+            return
+
+        # Prepare data for ChromaDB
+        ids = []
+        documents = []
+        metadatas = []
+
+        for chunk in chunks:
+            # Create a unique ID for each chunk
+            chunk_id = f"{chunk['doc_id']}_{chunk.get('chunk_id', '0')}"
+            ids.append(chunk_id)
+            documents.append(chunk['text'])
+            metadatas.append({
+                "doc_id": chunk['doc_id'],
+                "doc_title": chunk['doc_title'],
+                "section": chunk['section']
+            })
+
+        # Add documents to the collection
+        self.collection.add(
+            ids=ids,
+            documents=documents,
+            metadatas=metadatas
+        )
+
+        print(f"Successfully indexed {len(chunks)} chunks.")
+
+    def search_policies(self, query: str, top_k: int = 3) -> List[Dict[str, Any]]:
+        """Execute vector similarity search for relevant policy snippets.
+
+        Args:
+            query: Search query string
+            top_k: Number of results to return
+
+        Returns:
+            List of dictionaries containing doc_id, doc_title, section, snippet, and relevance_score
+        """
+        # Search in ChromaDB
+        results = self.collection.query(
+            query_texts=[query],
+            n_results=top_k,
+            include=["documents", "metadatas", "distances"]
+        )
+
+        search_results = []
+
+        # ChromaDB returns results as lists of lists
+        if results["ids"] and len(results["ids"][0]) > 0:
+            for i in range(len(results["ids"][0])):
+                metadata = results["metadatas"][0][i]
+                snippet = results["documents"][0][i]
+                distance = results["distances"][0][i]
+
+                # Convert distance to a relevance score (simple inverse)
+                # Note: ChromaDB's L2 distance: smaller is more similar
+                relevance_score = 1 / (1 + distance) if distance is not None else 0.0
+
+                search_results.append({
+                    "doc_id": metadata.get("doc_id"),
+                    "doc_title": metadata.get("doc_title"),
+                    "section": metadata.get("section"),
+                    "snippet": snippet,
+                    "relevance_score": relevance_score
+                })
+
+        return search_results
+
+if __name__ == "__main__":
+    # Instantiate PolicyRAG
+    rag = PolicyRAG()
+
+    # Build the index
+    rag.build_index()
+
+    # Sample test search
+    query = "remote work options"
+    print(f"\nTesting search for: '{query}'")
+    results = rag.search_policies(query)
+
+    if results:
+        for i, res in enumerate(results):
+            print(f"\nResult {i+1}:")
+            print(f"  Title: {res['doc_title']}")
+            print(f"  Section: {res['section']}")
+            print(f"  Score: {res['relevance_score']:.4f}")
+            print(f"  Snippet: {res['snippet'][:200]}...")
+    else:
+        print("No relevant policies found.")

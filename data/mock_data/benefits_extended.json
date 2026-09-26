@@ -1,0 +1,152 @@
+[
+  {
+    "employee_id": "EMP-101",
+    "health_plan": "PPO",
+    "dental_enrolled": true,
+    "vision_enrolled": true,
+    "401k_match_percent": 4,
+    "wellness_stipend_used": 150,
+    "life_insurance": 100000,
+    "disability_insurance": 50000
+  },
+  {
+    "employee_id": "EMP-102",
+    "health_plan": "HMO",
+    "dental_enrolled": true,
+    "vision_enrolled": false,
+    "401k_match_percent": 3,
+    "wellness_stipend_used": 0,
+    "life_insurance": 75000,
+    "disability_insurance": 25000
+  },
+  {
+    "employee_id": "EMP-103",
+    "health_plan": "PPO",
+    "dental_enrolled": true,
+    "vision_enrolled": true,
+    "401k_match_percent": 5,
+    "wellness_stipend_used": 200,
+    "life_insurance": 150000,
+    "disability_insurance": 75000
+  },
+  {
+    "employee_id": "EMP-104",
+    "health_plan": "HMO",
+    "dental_enrolled": false,
+    "vision_enrolled": true,
+    "401k_match_percent": 4,
+    "wellness_stipend_used": 50,
+    "life_insurance": 75000,
+    "disability_insurance": 35000
+  },
+  {
+    "employee_id": "EMP-105",
+    "health_plan": "PPO",
+    "dental_enrolled": true,
+    "vision_enrolled": true,
+    "4401k_match_percent": 6,
+    "wellness_stipend_used": 100,
+    "life_insurance": 200000,
+    "disability_insurance": 100000
+  },
+  {
+    "employee_id": "EMP-106",
+    "health_plan": "PPO",
+    "dental_enrolled": true,
+    "vision_enrolled": true,
+    "401k_match_percent": 4,
+    "wellness_stipend_used": 125,
+    "life_insurance": 100000,
+    "disability_insurance": 50000
+  },
+  {
+    "employee_id": "EMP-107",
+    "health_plan": "HMO",
+    "dental_enrolled": true,
+    "vision_enrolled": false,
+    "401k_match_percent": 3,
+    "wellness_stipend_used": 0,
+    "life_insurance": 75000,
+    "disability_insurance": 25000
+  },
+  {
+    "employee_id": "EMP-108",
+    "health_plan": "PPO",
+    "dental_enrolled": true,
+    "vision_enrolled": true,
+    "401k_match_percent": 5,
+    "wellness_stipend_used": 250,
+    "life_insurance": 150000,
+    "disability_insurance": 75000
+  },
+  {
+    "employee_id": "EMP-109",
+    "health_plan": "PPO",
+    "dental_enrolled": true,
+    "vision_enrolled": true,
+    "401k_match_percent": 6,
+    "wellness_stipend_used": 200,
+    "life_insurance": 200000,
+    "disability_insurance": 100000
+  },
+  {
+    "employee_id": "EMP-110",
+    "health_plan": "HMO",
+    "dental_enrolled": false,
+    "vision_enrolled": true,
+    "401k_match_percent": 3,
+    "wellness_stipend_used": 75,
+    "life_insurance": 75000,
+    "disability_insurance": 35000
+  },
+  {
+    "employee_id": "EMP-111",
+    "health_plan": "PPO",
+    "dental_enrolled": true,
+    "vision_enrolled": true,
+    "401k_match_percent": 6,
+    "wellness_stipend_used": 150,
+    "life_insurance": 200000,
+    "disability_insurance": 100000
+  },
+  {
+    "employee_id": "EMP-112",
+    "health_plan": "HMO",
+    "dental_enrolled": true,
+    "vision_enrolled": false,
+    "401k_match_percent": 3,
+    "wellness_stipend_used": 0,
+    "life_insurance": 75000,
+    "disability_insurance": 25000
+  },
+  {
+    "employee_id": "EMP-113",
+    "health_plan": "PPO",
+    "dental_enrolled": true,
+    "vision_enrolled": true,
+    "401k_match_percent": 5,
+    "wellness_stipend_used": 200,
+    "life_insurance": 150000,
+    "disability_insurance": 75000
+  },
+  {
+    "employee_id": "EMP-114",
+    "health_plan": "HMO",
+    "dental_enrolled": false,
+    "vision_enrolled": true,
+    "401k_match_percent": 3,
+    "wellness_stipend_used": 50,
+    "life_insurance": 75000,
+    "disability_insurance": 35000
+  },
+  {
+    "employee_id": "EMP-115",
+    "health_plan": "PPO",
+    "dental_enrolled": true,
+    "vision_enrolled": true,
+    "401k_match_percent": 5,
+    "wellness_stipend_used": 175,
+    "life_insurance": 150000,
+    "disability_insurance": 75000
+  }
+]
