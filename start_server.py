@@ -12,12 +12,15 @@ from app.main import app
 
 if __name__ == "__main__":
     import uvicorn
-    # Use minimal configuration to avoid OOM errors
+    port = int(os.environ.get("PORT", 8000))
+    # Use pure python asyncio and h11 to avoid C-extension / AVX SIGILL crashes on Render
     uvicorn.run(
         app,
         host="0.0.0.0",
-        port=8000,
-        workers=1,  # Only one worker to reduce memory usage
+        port=port,
+        loop="asyncio",
+        http="h11",
+        workers=1,
         timeout_keep_alive=30,
         log_level="info"
     )
