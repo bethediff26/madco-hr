@@ -5,9 +5,9 @@ import re
 from typing import List, Dict, Any, Optional, Iterable
 
 import chromadb
-from chromadb.utils import embedding_functions
 
 from rag.parser import load_and_parse_policies
+
 
 
 import hashlib
