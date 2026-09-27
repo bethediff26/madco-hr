@@ -10,12 +10,43 @@ from chromadb.utils import embedding_functions
 from rag.parser import load_and_parse_policies
 
 
+import hashlib
+
+class LightweightEmbeddingFunction(chromadb.EmbeddingFunction):
+    """Deterministic, zero-download embedding function for ChromaDB.
+    Avoids external S3 model downloads and ONNX CPU vector instruction crashes.
+    """
+    def __init__(self, dim: int = 128):
+        self.dim = dim
+
+    def __call__(self, input: chromadb.Documents) -> chromadb.Embeddings:
+        embeddings = []
+        for text in input:
+            vec = [0.0] * self.dim
+            words = re.findall(r'\b\w+\b', str(text).lower())
+            for w in words:
+                h = int(hashlib.md5(w.encode('utf-8')).hexdigest(), 16) % self.dim
+                vec[h] += 1.0
+            norm = (sum(v * v for v in vec)) ** 0.5 or 1.0
+            embeddings.append([float(v / norm) for v in vec])
+        return embeddings
+
+    @staticmethod
+    def name() -> str:
+        return "lightweight_embedding"
+
+    def get_config(self) -> Dict[str, Any]:
+        return {"dim": self.dim}
+
+    def max_tokens(self) -> int:
+        return 512
+
+
 class PolicyRAG:
     """Retrieval-Augmented Generation for policy documents.
 
     Provides embedding-based retrieval over policy documents using ChromaDB
-    for storage and sentence-transformers for embeddings, plus a small set of
-    guardrails for policy-grounded answers.
+    for storage and a lightweight deterministic embedding function for policy-grounded answers.
     """
 
     POLICY_KEYWORDS = {
@@ -34,8 +65,8 @@ class PolicyRAG:
         )
 
         self.client = chromadb.PersistentClient(path=self.db_path)
-        self.embedding_fn = embedding_functions.DefaultEmbeddingFunction()
-        self.collection_name = "policy_documents"
+        self.embedding_fn = LightweightEmbeddingFunction()
+        self.collection_name = "policy_documents_v2"
         self.collection = self.client.get_or_create_collection(
             name=self.collection_name,
             embedding_function=self.embedding_fn,
@@ -241,9 +272,12 @@ class PolicyRAG:
         matches = self.search_policies(question_text, top_k=5)
         candidates = self._get_multi_document_candidates(question_text)
         if candidates:
-            filtered_matches = self.search_policies(question_text, top_k=5, filter_by_doc=candidates)
-            if filtered_matches:
-                matches = filtered_matches + [m for m in matches if m.get("doc_id") not in {r.get("doc_id") for r in filtered_matches}]
+            per_doc_matches = []
+            for candidate in candidates:
+                cand_matches = self.search_policies(question_text, top_k=2, filter_by_doc=[candidate])
+                per_doc_matches.extend(cand_matches)
+            if per_doc_matches:
+                matches = per_doc_matches + [m for m in matches if m.get("doc_id") not in {r.get("doc_id") for r in per_doc_matches}]
 
         if not matches:
             return {

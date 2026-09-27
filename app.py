@@ -265,6 +265,13 @@ def health():
         logger.error(f"Health check failed: {e}")
         return jsonify({'status': 'unhealthy', 'error': str(e)}), 500
 
+# Pre-warm orchestrator and policy index on server startup
+try:
+    from agent.orchestrator import orchestrator
+    logger.info("Orchestrator and Policy RAG successfully pre-warmed on server startup")
+except Exception as e:
+    logger.warning(f"Orchestrator pre-warm warning: {e}")
+
 import os
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))

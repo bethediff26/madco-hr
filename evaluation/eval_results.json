@@ -1,17 +1,17 @@
 {
-  "benchmark_timestamp": "2026-09-27 03:35:32 UTC",
+  "benchmark_timestamp": "2026-09-27 04:14:10 UTC",
   "total_test_cases": 8,
   "pass_rate_pct": 100.0,
   "avg_groundedness_pct": 100.0,
   "avg_tool_accuracy_pct": 100.0,
   "avg_completion_pct": 95.9,
-  "avg_latency_seconds": 0.832,
+  "avg_latency_seconds": 0.144,
   "cases": [
     {
       "id": "CASE-01",
       "category": "PTO Guidance",
       "query": "can you give me the pto balance for employee EMP-101 and guide me on requesting 3 days off next week?",
-      "latency_seconds": 6.464,
+      "latency_seconds": 0.156,
       "groundedness_score": 1.0,
       "citations_returned": 1,
       "tool_selection_accuracy": 1.0,
@@ -29,7 +29,7 @@
       "id": "CASE-02",
       "category": "Remote Work Eligibility",
       "query": "can employee EMP-102 work remotely from another state for six weeks?",
-      "latency_seconds": 0.055,
+      "latency_seconds": 0.221,
       "groundedness_score": 1.0,
       "citations_returned": 2,
       "tool_selection_accuracy": 1.0,
@@ -47,7 +47,7 @@
       "id": "CASE-03",
       "category": "Benefits Triage",
       "query": "what benefits is employee EMP-101 enrolled in?",
-      "latency_seconds": 0.026,
+      "latency_seconds": 0.01,
       "groundedness_score": 1.0,
       "citations_returned": 1,
       "tool_selection_accuracy": 1.0,
@@ -64,7 +64,7 @@
       "id": "CASE-04",
       "category": "Expense Compliance",
       "query": "can I expense a home office chair and what is the reimbursement limit?",
-      "latency_seconds": 0.021,
+      "latency_seconds": 0.01,
       "groundedness_score": 1.0,
       "citations_returned": 1,
       "tool_selection_accuracy": 1.0,
@@ -79,9 +79,9 @@
       "id": "CASE-05",
       "category": "Safety & Harassment Triage",
       "query": "an employee is facing workplace discrimination and retaliation from a manager, how is it handled?",
-      "latency_seconds": 0.024,
+      "latency_seconds": 0.438,
       "groundedness_score": 1.0,
-      "citations_returned": 1,
+      "citations_returned": 2,
       "tool_selection_accuracy": 1.0,
       "tools_selected": [
         "search_policies"
@@ -94,9 +94,9 @@
       "id": "CASE-06",
       "category": "Data Security Incident",
       "query": "an employee laptop was stolen containing customer records, what immediate steps are required?",
-      "latency_seconds": 0.025,
+      "latency_seconds": 0.014,
       "groundedness_score": 1.0,
-      "citations_returned": 1,
+      "citations_returned": 2,
       "tool_selection_accuracy": 1.0,
       "tools_selected": [
         "search_policies"
@@ -109,9 +109,9 @@
       "id": "CASE-07",
       "category": "Holiday Policy RAG",
       "query": "how many company paid holidays does MadCo observe per calendar year?",
-      "latency_seconds": 0.021,
+      "latency_seconds": 0.133,
       "groundedness_score": 1.0,
-      "citations_returned": 1,
+      "citations_returned": 3,
       "tool_selection_accuracy": 1.0,
       "tools_selected": [
         "search_policies"
@@ -124,9 +124,9 @@
       "id": "CASE-08",
       "category": "Parental Leave Policy",
       "query": "what is the policy for paid parental leave and who qualifies?",
-      "latency_seconds": 0.017,
+      "latency_seconds": 0.171,
       "groundedness_score": 1.0,
-      "citations_returned": 1,
+      "citations_returned": 2,
       "tool_selection_accuracy": 1.0,
       "tools_selected": [
         "search_policies"
