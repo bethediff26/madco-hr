@@ -216,22 +216,11 @@ class PolicyParser:
             max_words: Maximum words per chunk
             overlap_words: Number of words to overlap between chunks
         """
-        # Create sliding window starting from different points
-        # First, get a base chunk
-        base_chunk = words[:max_words]
-
-        self.chunk_counter += 1
-        chunks.append(Chunk(
-            chunk_id=self.chunk_counter,
-            doc_id="doc",
-            doc_title="policy_document",
-            section=section_title,
-            text=" ".join(base_chunk)
-        ))
-
-        # Slide window from start of words through to end
-        for start_idx in range(len(words) - max_words):
+        step = max(1, max_words - overlap_words)
+        for start_idx in range(0, len(words), step):
             chunk_words = words[start_idx:start_idx + max_words]
+            if not chunk_words:
+                break
             self.chunk_counter += 1
             chunks.append(Chunk(
                 chunk_id=self.chunk_counter,
@@ -240,6 +229,9 @@ class PolicyParser:
                 section=section_title,
                 text=" ".join(chunk_words)
             ))
+            if start_idx + max_words >= len(words):
+                break
+
 
     def load_policies(self) -> List[Dict[str, Any]]:
         """Load and parse all policy documents.
