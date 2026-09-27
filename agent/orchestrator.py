@@ -84,7 +84,7 @@ class HRPolicyAgentOrchestrator:
                 "harass", "discrimination", "retaliation", "workplace issue",
                 "data exposed", "data was exposed", "data exposure", "company data",
                 "security incident", "misconduct", "ethics complaint", "behavio",
-                "conduct issue", "employee issue"
+                "conduct issue", "employee issue", "stolen", "lost", "breach", "security"
             ]
         ):
             return "hr_case_triage"
