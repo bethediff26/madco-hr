@@ -4,22 +4,18 @@ import os
 import re
 from typing import List, Dict, Any, Optional, Iterable
 
-import chromadb
-
 from rag.parser import load_and_parse_policies
-
-
 
 import hashlib
 
-class LightweightEmbeddingFunction(chromadb.EmbeddingFunction):
-    """Deterministic, zero-download embedding function for ChromaDB.
+class LightweightEmbeddingFunction:
+    """Deterministic, zero-download embedding function.
     Avoids external S3 model downloads and ONNX CPU vector instruction crashes.
     """
     def __init__(self, dim: int = 128):
         self.dim = dim
 
-    def __call__(self, input: chromadb.Documents) -> chromadb.Embeddings:
+    def __call__(self, input: List[str]) -> List[List[float]]:
         embeddings = []
         for text in input:
             vec = [0.0] * self.dim
@@ -42,10 +38,84 @@ class LightweightEmbeddingFunction(chromadb.EmbeddingFunction):
         return 512
 
 
+class PurePythonPolicyStore:
+    """Zero-dependency, pure-Python in-memory policy vector store.
+    Immune to C-extension / AVX / ONNX SIGILL 132 crashes on virtualized hosting (Render).
+    """
+    def __init__(self, embedding_fn=None):
+        self.embedding_fn = embedding_fn or LightweightEmbeddingFunction()
+        self.ids = []
+        self.documents = []
+        self.metadatas = []
+        self.embeddings = []
+
+    def count(self) -> int:
+        return len(self.ids)
+
+    def add(self, ids: List[str], documents: List[str], metadatas: List[Dict[str, Any]]):
+        embeds = self.embedding_fn(documents)
+        for i, doc, meta, emb in zip(ids, documents, metadatas, embeds):
+            if i in self.ids:
+                idx = self.ids.index(i)
+                self.documents[idx] = doc
+                self.metadatas[idx] = meta
+                self.embeddings[idx] = emb
+            else:
+                self.ids.append(i)
+                self.documents.append(doc)
+                self.metadatas.append(meta)
+                self.embeddings.append(emb)
+
+    def query(
+        self,
+        query_texts: List[str],
+        n_results: int = 3,
+        include: Optional[List[str]] = None,
+        where: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
+        if not query_texts or not self.ids:
+            return {"ids": [[]], "documents": [[]], "metadatas": [[]], "distances": [[]]}
+
+        query_text = query_texts[0]
+        q_emb = self.embedding_fn([query_text])[0]
+
+        allowed_docs = None
+        if where and "doc_id" in where:
+            doc_spec = where["doc_id"]
+            if isinstance(doc_spec, dict) and "$in" in doc_spec:
+                allowed_docs = set(doc_spec["$in"])
+            elif isinstance(doc_spec, str):
+                allowed_docs = {doc_spec}
+
+        q_words = set(re.findall(r'\b\w+\b', query_text.lower()))
+
+        scored = []
+        for i, (doc_id, doc, meta, emb) in enumerate(zip(self.ids, self.documents, self.metadatas, self.embeddings)):
+            if allowed_docs is not None and meta.get("doc_id") not in allowed_docs:
+                continue
+
+            dot = sum(a * b for a, b in zip(q_emb, emb))
+            doc_words = set(re.findall(r'\b\w+\b', (doc + " " + meta.get("doc_title", "")).lower()))
+            overlap = len(q_words & doc_words)
+            sim = dot + (overlap * 0.1)
+            dist = max(0.0, 1.0 - (sim / (1.0 + overlap * 0.1)))
+            scored.append((dist, doc_id, doc, meta))
+
+        scored.sort(key=lambda x: x[0])
+        top = scored[:max(1, n_results)]
+
+        return {
+            "ids": [[item[1] for item in top]],
+            "documents": [[item[2] for item in top]],
+            "metadatas": [[item[3] for item in top]],
+            "distances": [[item[0] for item in top]],
+        }
+
+
 class PolicyRAG:
     """Retrieval-Augmented Generation for policy documents.
 
-    Provides embedding-based retrieval over policy documents using ChromaDB
+    Provides embedding-based retrieval over policy documents using PurePythonPolicyStore
     for storage and a lightweight deterministic embedding function for policy-grounded answers.
     """
 
@@ -58,21 +128,18 @@ class PolicyRAG:
     }
 
     def __init__(self, db_path: str = "data/chroma_db", policies_dir: str = None):
-        """Initialize PolicyRAG with ChromaDB instance."""
+        """Initialize PolicyRAG with in-memory policy store."""
         self.db_path = os.path.abspath(db_path if db_path is not None else "data/chroma_db")
         self.policies_dir = os.path.abspath(
             policies_dir if policies_dir is not None else "data/policies"
         )
 
-        self.client = chromadb.PersistentClient(path=self.db_path)
         self.embedding_fn = LightweightEmbeddingFunction()
         self.collection_name = "policy_documents_v2"
-        self.collection = self.client.get_or_create_collection(
-            name=self.collection_name,
-            embedding_function=self.embedding_fn,
-        )
+        self.collection = PurePythonPolicyStore(embedding_fn=self.embedding_fn)
         if self.collection.count() == 0:
             self.build_index()
+
 
     def _rewrite_query(self, query: str) -> str:
         """Normalize a user query before semantic retrieval."""
