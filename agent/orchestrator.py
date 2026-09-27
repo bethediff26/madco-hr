@@ -351,7 +351,7 @@ class HRPolicyAgentOrchestrator:
                             "trace": self._format_trace(trace)
                         }
 
-                    available_days = pto_result["pto_available"]
+                    available_days = pto_result.get("pto_available", pto_result.get("pto_balance", 0))
 
                     compliance_result = await self.mcp_client.check_policy_compliance(
                         "pto",
@@ -408,7 +408,8 @@ class HRPolicyAgentOrchestrator:
                             "issue": query,
                         })
                         trace.tool_outputs.append(ticket_result)
-                        message += f" Mock HR ticket {ticket_result['ticket_id']} was created for review."
+                        ticket_id = ticket_result.get('ticket_id', 'TICK-REVIEW') if isinstance(ticket_result, dict) else 'TICK-REVIEW'
+                        message += f" Mock HR ticket {ticket_id} was created for review."
                 except Exception as e:
                     logger.warning(f"Could not check PTO balance: {e}")
                     message = f"PTO request guidance for employee {employee_id}: "

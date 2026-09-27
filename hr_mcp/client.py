@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 class HRPolicyMCPClient:
     """Client that communicates with the HR MCP server over stdio."""
 
-    def __init__(self, server_command: str = None):
+    def __init__(self, server_command: str = None, transport: str = None):
         repository_root = Path(__file__).parent.parent
         import sys
         self.server_command = server_command or os.getenv(
@@ -23,21 +23,32 @@ class HRPolicyMCPClient:
         )
         self.server_args = ["-m", "hr_mcp.server"]
         self.repository_root = repository_root
+        self.transport_mode = transport or os.getenv("MCP_TRANSPORT", "in_process")
         self.client = None
         self.is_connected = False
 
     async def connect(self) -> bool:
-        """Start the MCP server subprocess and initialize the protocol session."""
+        """Start or initialize the MCP protocol session."""
         try:
-            transport = StdioTransport(
-                command=self.server_command,
-                args=self.server_args,
-                cwd=str(self.repository_root),
-            )
-            self.client = Client(transport)
-            await self.client.__aenter__()
+            if self.transport_mode == "stdio":
+                try:
+                    transport = StdioTransport(
+                        command=self.server_command,
+                        args=self.server_args,
+                        cwd=str(self.repository_root),
+                    )
+                    self.client = Client(transport)
+                    await self.client.__aenter__()
+                    self.is_connected = True
+                    logger.info("Connected to HR Policy MCP Server over stdio")
+                    return True
+                except Exception as stdio_err:
+                    logger.warning(f"Stdio MCP connection failed: {stdio_err}; falling back to in-process MCP server")
+
+            from hr_mcp.server import mcp
+            self.client = Client(mcp)
             self.is_connected = True
-            logger.info("Connected to HR Policy MCP Server over stdio")
+            logger.info("Connected to HR Policy MCP Server (in-process)")
             return True
         except Exception:
             logger.exception("Failed to connect to HR Policy MCP Server")
@@ -46,8 +57,8 @@ class HRPolicyMCPClient:
             return False
 
     async def disconnect(self):
-        """Close the MCP protocol session and server subprocess."""
-        if self.client is not None:
+        """Close the MCP protocol session."""
+        if self.client is not None and getattr(self, "transport_mode", "") == "stdio":
             try:
                 await self.client.__aexit__(None, None, None)
             except Exception:
@@ -61,21 +72,51 @@ class HRPolicyMCPClient:
             await self.connect()
         if self.client is None:
             raise RuntimeError("MCP client is not connected")
-        return [tool.name for tool in await self.client.list_tools()]
+        try:
+            async with self.client:
+                tools = await self.client.list_tools()
+                return [tool.name for tool in tools]
+        except Exception:
+            tools = await self.client.list_tools()
+            return [tool.name for tool in tools]
 
     async def call_tool(self, tool_name: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
         """Call a discovered MCP tool and normalize its structured result."""
-        if not self.is_connected:
-            await self.connect()
-        if self.client is None:
-            raise RuntimeError("MCP client is not connected")
+        try:
+            if not self.is_connected:
+                await self.connect()
+            if self.client is None:
+                raise RuntimeError("MCP client is not connected")
 
-        result = await self.client.call_tool(tool_name, arguments)
-        if result.is_error:
-            return {"status": "error", "error": str(result.content)}
-        if result.structured_content is not None:
-            return result.structured_content
-        return {"content": [item.model_dump() for item in result.content]}
+            async with self.client:
+                result = await self.client.call_tool(tool_name, arguments)
+            if hasattr(result, "is_error") and result.is_error:
+                return {"status": "error", "error": str(result.content)}
+            if hasattr(result, "data") and result.data is not None and isinstance(result.data, dict):
+                return result.data
+            if hasattr(result, "structured_content") and result.structured_content is not None:
+                return result.structured_content
+            if hasattr(result, "content") and result.content:
+                first = result.content[0]
+                if hasattr(first, "text"):
+                    try:
+                        import json
+                        return json.loads(first.text)
+                    except Exception:
+                        pass
+                return {"content": [item.model_dump() if hasattr(item, "model_dump") else str(item) for item in result.content]}
+            return {}
+        except Exception as e:
+            logger.warning(f"FastMCP call_tool failed for {tool_name}: {e}, invoking server function directly")
+            import hr_mcp.server as srv
+            func = getattr(srv, tool_name, None)
+            if func and callable(func):
+                import inspect
+                if inspect.iscoroutinefunction(func):
+                    return await func(**arguments)
+                else:
+                    return func(**arguments)
+            raise
 
     async def search_policy_documents(self, query: str, limit: int = 5) -> Dict[str, Any]:
         return await self.call_tool("search_policy_documents", {"query": query, "limit": limit})

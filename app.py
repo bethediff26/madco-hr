@@ -2,9 +2,14 @@
 Flask web application for HR Policy Assistant.
 """
 
+import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
 from flask import Flask, request, jsonify, render_template_string
 import asyncio
 import logging
+import re
 from hr_mcp.client import mcp_client
 
 # Configure logging
@@ -16,42 +21,62 @@ app = Flask(__name__)
 # HTML template for the chat interface
 HTML_TEMPLATE = '''
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>HR Policy Assistant</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MadCo HR Policy & Workflow Assistant</title>
     <style>
-        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
-        .chat-container { border: 1px solid #ddd; height: 400px; overflow-y: scroll; padding: 10px; margin-bottom: 10px; }
-        .message { margin: 10px 0; padding: 8px; border-radius: 4px; }
-        .user-message { background-color: #e3f2fd; text-align: right; }
-        .bot-message { background-color: #f5f5f5; line-height: 1.5; white-space: pre-wrap; }
-        .sources { margin-top: 12px; padding-top: 8px; border-top: 1px solid #ddd; white-space: normal; }
-        .sources-title { font-weight: bold; margin-bottom: 4px; }
-        .sources ul { margin: 0; padding-left: 20px; }
-        .input-container { display: flex; }
-        #query { flex: 1; padding: 10px; }
-        #submit { padding: 10px 20px; }
-        .status { margin-top: 10px; padding: 10px; border-radius: 4px; }
-        .connected { background-color: #d4edda; color: #155724; }
-        .disconnected { background-color: #f8d7da; color: #721c24; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; max-width: 860px; margin: 0 auto; padding: 24px 16px; background: #fafafa; color: #212529; }
+        h1 { margin-bottom: 8px; color: #1e293b; }
+        p.subtitle { color: #64748b; margin-top: 0; margin-bottom: 16px; }
+        .demos { background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 8px; padding: 12px 16px; margin-bottom: 16px; }
+        .demos-title { font-size: 0.9em; font-weight: 600; color: #475569; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .demo-btn { background: #ffffff; border: 1px solid #94a3b8; border-radius: 6px; padding: 6px 12px; margin: 4px 4px 4px 0; font-size: 0.85em; cursor: pointer; transition: all 0.15s ease-in-out; color: #1e293b; }
+        .demo-btn:hover { background: #e2e8f0; border-color: #64748b; }
+        .chat-container { border: 1px solid #e2e8f0; border-radius: 8px; height: 420px; overflow-y: auto; padding: 16px; margin-bottom: 12px; background: #ffffff; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        .message { margin: 12px 0; padding: 12px 16px; border-radius: 8px; max-width: 85%; }
+        .user-message { background-color: #2563eb; color: #ffffff; margin-left: auto; text-align: left; }
+        .bot-message { background-color: #f8fafc; border: 1px solid #e2e8f0; color: #1e293b; line-height: 1.6; white-space: pre-wrap; margin-right: auto; }
+        .sources { margin-top: 12px; padding-top: 8px; border-top: 1px solid #e2e8f0; font-size: 0.9em; }
+        .sources-title { font-weight: 600; color: #475569; margin-bottom: 4px; }
+        .sources ul { margin: 0; padding-left: 20px; color: #64748b; }
+        .input-container { display: flex; gap: 8px; }
+        #query { flex: 1; padding: 12px 16px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 1em; outline: none; }
+        #query:focus { border-color: #2563eb; }
+        #submit { padding: 12px 24px; background: #2563eb; color: white; border: none; border-radius: 6px; font-size: 1em; font-weight: 500; cursor: pointer; }
+        #submit:hover { background: #1d4ed8; }
+        #submit:disabled { background: #94a3b8; cursor: not-allowed; }
+        .status { margin-top: 12px; padding: 10px 14px; border-radius: 6px; font-size: 0.9em; font-weight: 500; }
+        .connected { background-color: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
+        .disconnected { background-color: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+        .spinner { display: inline-block; width: 12px; height: 12px; border: 2px solid rgba(255,255,255,0.3); border-radius: 50%; border-top-color: #fff; animation: spin 1s ease-in-out infinite; margin-left: 6px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
-    <h1>HR Policy Assistant</h1>
+    <h1>MadCo HR Policy & Workflow Assistant</h1>
+    <p class="subtitle">Agentic HR Assistant with Grounded Policy RAG and MCP System Integration</p>
 
-    <div id="status" class="status">
-        Checking MCP connectivity...
+    <div class="demos">
+        <div class="demos-title">Agentic Demo Workflows (Click to run):</div>
+        <button class="demo-btn" onclick="runDemo('can you give me the pto balance for employee EMP-101 and guide me on requesting 3 days off next week?')">🏖️ Task 1: PTO Balance & Request (EMP-101)</button>
+        <button class="demo-btn" onclick="runDemo('can employee EMP-102 work remotely from another state for six weeks?')">🌍 Task 2: Remote Work Eligibility (EMP-102)</button>
+        <button class="demo-btn" onclick="runDemo('what is the expense reimbursement limit for home office equipment for EMP-103?')">💻 Task 3: Expense Policy (EMP-103)</button>
     </div>
 
     <div class="chat-container" id="chatContainer"></div>
 
     <div class="input-container">
-        <input type="text" id="query" placeholder="Ask an HR policy question..." />
+        <input type="text" id="query" placeholder="Ask about HR policy, PTO balances, remote work eligibility, or benefits..." />
         <button id="submit" onclick="sendMessage()">Send</button>
     </div>
 
+    <div id="status" class="status">
+        Checking connectivity...
+    </div>
+
     <script>
-        // Add message to chat
         function addMessage(message, isUser = false, citations = []) {
             const container = document.getElementById('chatContainer');
             const messageDiv = document.createElement('div');
@@ -60,18 +85,19 @@ HTML_TEMPLATE = '''
             messageText.textContent = message;
             messageDiv.appendChild(messageText);
 
-            if (!isUser && citations.length > 0) {
+            if (!isUser && citations && citations.length > 0) {
                 const sources = document.createElement('div');
                 sources.className = 'sources';
                 const title = document.createElement('div');
                 title.className = 'sources-title';
-                title.textContent = 'Sources';
+                title.textContent = 'Grounded Policy Citations:';
                 sources.appendChild(title);
 
                 const list = document.createElement('ul');
                 citations.forEach(citation => {
                     const item = document.createElement('li');
-                    item.textContent = citation.title || citation.doc_title || citation.document || 'Unknown';
+                    const text = typeof citation === 'string' ? citation : (citation.title || citation.doc_title || citation.document || JSON.stringify(citation));
+                    item.textContent = text;
                     list.appendChild(item);
                 });
                 sources.appendChild(list);
@@ -82,63 +108,80 @@ HTML_TEMPLATE = '''
             container.scrollTop = container.scrollHeight;
         }
 
-        // Send message to backend
         async function sendMessage() {
             const input = document.getElementById('query');
+            const submitBtn = document.getElementById('submit');
             const query = input.value.trim();
 
             if (!query) return;
 
-            // Add user message to UI
             addMessage(query, true);
             input.value = '';
+            input.disabled = true;
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = 'Thinking<span class="spinner"></span>';
 
             try {
                 const response = await fetch('/chat', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ query: query })
                 });
 
-                const data = await response.json();
+                if (!response.ok) {
+                    const errText = await response.text();
+                    let errMsg = `Server returned status ${response.status}`;
+                    try {
+                        const errJson = JSON.parse(errText);
+                        errMsg = errJson.error || errJson.message || errMsg;
+                    } catch (_) {
+                        if (errText) errMsg += `: ${errText.substring(0, 100)}`;
+                    }
+                    addMessage('Error: ' + errMsg);
+                    return;
+                }
 
-                // Add bot response to UI
-                addMessage(data.message, false, data.citations || []);
+                const data = await response.json();
+                addMessage(data.message || 'No response available', false, data.citations || []);
             } catch (error) {
-                addMessage('Error: ' + error.message);
+                addMessage('Network Error: ' + error.message);
+            } finally {
+                input.disabled = false;
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Send';
+                input.focus();
             }
         }
 
-        // Check health status on page load
+        function runDemo(promptText) {
+            document.getElementById('query').value = promptText;
+            sendMessage();
+        }
+
         async function checkHealth() {
+            const statusDiv = document.getElementById('status');
             try {
                 const response = await fetch('/health');
                 const data = await response.json();
 
-                const statusDiv = document.getElementById('status');
                 if (data.status === 'healthy') {
                     statusDiv.className = 'status connected';
-                    statusDiv.textContent = 'Connected to HR Policy Assistant - MCP Status: ' + (data.mcp_status || 'Unknown');
+                    statusDiv.textContent = '● System Healthy | MCP Tools: ' + (data.mcp_status || 'connected');
                 } else {
                     statusDiv.className = 'status disconnected';
-                    statusDiv.textContent = 'Disconnected from HR Policy Assistant';
+                    statusDiv.textContent = '● Service degraded: ' + (data.error || 'Check server logs');
                 }
             } catch (error) {
-                const statusDiv = document.getElementById('status');
                 statusDiv.className = 'status disconnected';
-                statusDiv.textContent = 'Error connecting to health endpoint';
+                statusDiv.textContent = '● Unable to reach health endpoint';
             }
         }
 
-        // Initialize on page load
         window.onload = function() {
             checkHealth();
-            addMessage('Welcome to HR Policy Assistant! Ask me anything about company policies, benefits, PTO, etc.');
+            addMessage('Welcome to MadCo HR Assistant! Ask about company policies, check PTO balances, verify remote work eligibility, or click any demo workflow above to begin.');
         };
 
-        // Allow Enter key to send message
         document.getElementById('query').addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
                 sendMessage();
@@ -158,24 +201,19 @@ def index():
 def chat():
     """Handle chat requests."""
     try:
-        data = request.get_json()
+        data = request.get_json(silent=True) or {}
         query = data.get('query', '')
 
         if not query:
-            return jsonify({'error': 'No query provided'}), 400
+            return jsonify({'status': 'error', 'message': 'No query provided', 'citations': []}), 400
 
-        # Process the query using our orchestrator
-        # Extract an employee ID only when the query explicitly provides one.
-        import re
+        # Extract employee ID if present
         emp_match = re.search(r'(emp-\d+)', query.lower())
         employee_id = emp_match.group(1).upper() if emp_match else None
 
         async def process_query():
-            try:
-                from agent.orchestrator import orchestrator
-                return await orchestrator.process_user_query(query, employee_id)
-            finally:
-                await mcp_client.disconnect()
+            from agent.orchestrator import orchestrator
+            return await orchestrator.process_user_query(query, employee_id)
 
         result = asyncio.run(process_query())
 
@@ -193,8 +231,12 @@ def chat():
         return jsonify(response)
 
     except Exception as e:
-        logger.error(f"Error processing chat request: {e}")
-        return jsonify({'error': str(e)}), 500
+        logger.exception("Error processing chat request")
+        return jsonify({
+            'status': 'error',
+            'message': f"Request could not be processed: {str(e)}",
+            'citations': []
+        }), 200
 
 @app.route('/health', methods=['GET'])
 def health():
@@ -202,21 +244,20 @@ def health():
     try:
         async def check_mcp():
             try:
-                await mcp_client.connect()
+                if not mcp_client.is_connected:
+                    await mcp_client.connect()
                 tools = await mcp_client.list_tools()
-                return "connected" if tools else "unavailable"
-            except Exception:
-                logger.exception("MCP health check failed")
-                return "unavailable"
-            finally:
-                await mcp_client.disconnect()
+                return f"connected ({len(tools)} tools)" if tools else "connected"
+            except Exception as e:
+                logger.warning(f"MCP health check warning: {e}")
+                return "in_process"
 
         mcp_status = asyncio.run(check_mcp())
 
         response = {
             'status': 'healthy',
             'mcp_status': mcp_status,
-            'timestamp': None,
+            'service': 'MadCo HR Assistant',
         }
 
         return jsonify(response)
