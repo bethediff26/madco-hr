@@ -5,7 +5,6 @@ Flask web application for HR Policy Assistant.
 from flask import Flask, request, jsonify, render_template_string
 import asyncio
 import logging
-from agent.orchestrator import orchestrator
 from hr_mcp.client import mcp_client
 
 # Configure logging
@@ -173,6 +172,7 @@ def chat():
 
         async def process_query():
             try:
+                from agent.orchestrator import orchestrator
                 return await orchestrator.process_user_query(query, employee_id)
             finally:
                 await mcp_client.disconnect()

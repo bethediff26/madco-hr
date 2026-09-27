@@ -16,9 +16,10 @@ class HRPolicyMCPClient:
 
     def __init__(self, server_command: str = None):
         repository_root = Path(__file__).parent.parent
+        import sys
         self.server_command = server_command or os.getenv(
             "MCP_SERVER_COMMAND",
-            str(repository_root / "env" / "bin" / "python"),
+            sys.executable,
         )
         self.server_args = ["-m", "hr_mcp.server"]
         self.repository_root = repository_root
