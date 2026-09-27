@@ -87,7 +87,15 @@ class PurePythonPolicyStore:
             elif isinstance(doc_spec, str):
                 allowed_docs = {doc_spec}
 
+        STOP_WORDS = {
+            "can", "you", "give", "me", "the", "a", "an", "is", "are", "what",
+            "policy", "policies", "tell", "about", "for", "in", "on", "to", "and",
+            "of", "how", "do", "i", "get", "please", "with", "from", "guidance"
+        }
         q_words = set(re.findall(r'\b\w+\b', query_text.lower()))
+        content_words = q_words - STOP_WORDS
+        if not content_words:
+            content_words = q_words
 
         scored = []
         for i, (doc_id, doc, meta, emb) in enumerate(zip(self.ids, self.documents, self.metadatas, self.embeddings)):
@@ -96,9 +104,9 @@ class PurePythonPolicyStore:
 
             dot = sum(a * b for a, b in zip(q_emb, emb))
             doc_words = set(re.findall(r'\b\w+\b', (doc + " " + meta.get("doc_title", "")).lower()))
-            overlap = len(q_words & doc_words)
-            sim = dot + (overlap * 0.1)
-            dist = max(0.0, 1.0 - (sim / (1.0 + overlap * 0.1)))
+            overlap = len(content_words & doc_words)
+            sim = dot + (overlap * 0.25)
+            dist = max(0.0, 1.0 - (sim / (1.0 + overlap * 0.25)))
             scored.append((dist, doc_id, doc, meta))
 
         scored.sort(key=lambda x: x[0])
@@ -110,6 +118,7 @@ class PurePythonPolicyStore:
             "metadatas": [[item[3] for item in top]],
             "distances": [[item[0] for item in top]],
         }
+
 
 
 class PolicyRAG:
@@ -276,31 +285,63 @@ class PolicyRAG:
         )
         return answer
 
+    def _get_target_documents(self, question: str) -> Optional[List[str]]:
+        """Identify if query specifically asks for a particular policy."""
+        lower = question.lower()
+
+        if "equipment" in lower and not any(k in lower for k in ["stipend", "reimbursement"]):
+            return ["doc_md_equipment_policy.md"]
+
+        if any(k in lower for k in ["data security", "vpn", "mfa", "password", "security policy"]):
+            return ["doc_md_data_security_policy.md"]
+
+        if any(k in lower for k in ["code of conduct", "conduct policy", "ethics policy", "misconduct"]):
+            return ["doc_md_code_of_conduct.md"]
+
+        if any(k in lower for k in ["pto policy", "vacation policy", "paid time off policy"]):
+            return ["doc_md_pto_policy.md"]
+
+        if any(k in lower for k in ["parental leave", "bereavement", "jury duty", "fmla", "leave policy"]) and "pto" not in lower:
+            return ["doc_md_leave_policy.md"]
+
+        if any(k in lower for k in ["expense policy", "reimbursement policy", "travel policy", "per diem"]):
+            return ["doc_md_expense_policy.md"]
+
+        if any(k in lower for k in ["holidays policy", "holiday policy"]):
+            return ["doc_md_holidays_policy.md"]
+
+        if any(k in lower for k in ["onboarding policy", "new hire policy"]):
+            return ["doc_md_onboarding_policy.md"]
+
+        if any(k in lower for k in ["benefits guide", "benefits policy"]):
+            return ["doc_md_benefits_guide.md"]
+
+        if any(k in lower for k in ["remote work policy", "telework policy", "work from home policy"]) and not any(k in lower for k in ["stipend", "expense", "reimbursement"]):
+            return ["doc_md_remote_work_policy.md"]
+
+        return None
+
     def _get_multi_document_candidates(self, question: str) -> List[str]:
         """Return likely policy document IDs for compound questions spanning multiple policy areas."""
         lower = question.lower()
         candidates = []
 
-        if any(token in lower for token in ["remote", "telework", "home office", "internet", "equipment", "stipend", "work from home"]):
+        if any(token in lower for token in ["remote", "telework", "work from home"]):
             candidates.append("doc_md_remote_work_policy.md")
         if "equipment" in lower:
             candidates.append("doc_md_equipment_policy.md")
-        if any(token in lower for token in ["reimbursement", "expense", "stipend", "home office", "internet"]):
+        if any(token in lower for token in ["reimbursement", "expense", "stipend"]):
             candidates.append("doc_md_expense_policy.md")
-        if any(token in lower for token in ["pto", "paid time off", "vacation", "carryover", "sick leave"]):
+        if any(token in lower for token in ["pto", "paid time off", "vacation"]):
             candidates.append("doc_md_pto_policy.md")
         if "leave" in lower:
             candidates.append("doc_md_leave_policy.md")
-        if any(token in lower for token in ["benefits", "health", "dental", "vision", "401k", "wellness"]):
+        if any(token in lower for token in ["benefits", "health", "dental", "vision", "401k"]):
             candidates.append("doc_md_benefits_guide.md")
-        if any(token in lower for token in ["data", "security", "vpn", "mfa", "password", "privacy"]):
+        if any(token in lower for token in ["data", "security", "vpn"]):
             candidates.append("doc_md_data_security_policy.md")
-        if any(token in lower for token in ["onboarding", "new hire"]):
-            candidates.append("doc_md_onboarding_policy.md")
         if any(token in lower for token in ["holiday", "holidays"]):
             candidates.extend(["doc_md_holidays_policy.md", "doc_pdf_holidays_policy.pdf"])
-        if any(token in lower for token in ["conduct", "ethics", "professional standards"]):
-            candidates.append("doc_md_code_of_conduct.md")
 
         return list(dict.fromkeys(candidates))
 
@@ -336,15 +377,19 @@ class PolicyRAG:
                 "citations": [],
             }
 
-        matches = self.search_policies(question_text, top_k=5)
-        candidates = self._get_multi_document_candidates(question_text)
-        if candidates:
-            per_doc_matches = []
-            for candidate in candidates:
-                cand_matches = self.search_policies(question_text, top_k=2, filter_by_doc=[candidate])
-                per_doc_matches.extend(cand_matches)
-            if per_doc_matches:
-                matches = per_doc_matches + [m for m in matches if m.get("doc_id") not in {r.get("doc_id") for r in per_doc_matches}]
+        target_docs = self._get_target_documents(question_text)
+        if target_docs:
+            matches = self.search_policies(question_text, top_k=5, filter_by_doc=target_docs)
+        else:
+            matches = self.search_policies(question_text, top_k=5)
+            candidates = self._get_multi_document_candidates(question_text)
+            if len(candidates) >= 2:
+                per_doc_matches = []
+                for candidate in candidates:
+                    cand_matches = self.search_policies(question_text, top_k=2, filter_by_doc=[candidate])
+                    per_doc_matches.extend(cand_matches)
+                if per_doc_matches:
+                    matches = per_doc_matches + [m for m in matches if m.get("doc_id") not in {r.get("doc_id") for r in per_doc_matches}]
 
         if not matches:
             return {
@@ -356,11 +401,15 @@ class PolicyRAG:
         deduped = []
         seen = set()
         for match in matches:
-            doc_id = match.get("doc_id")
-            if doc_id and doc_id in seen:
+            key = (match.get("doc_id"), match.get("section"))
+            if key in seen:
                 continue
-            seen.add(doc_id)
+            seen.add(key)
             deduped.append(match)
+
+        if target_docs:
+            deduped = [m for m in deduped if m.get("doc_id") in target_docs]
+
 
         citations = []
         for match in deduped[:5]:
