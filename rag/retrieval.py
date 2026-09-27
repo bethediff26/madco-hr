@@ -34,9 +34,7 @@ class PolicyRAG:
         )
 
         self.client = chromadb.PersistentClient(path=self.db_path)
-        self.embedding_fn = embedding_functions.SentenceTransformerEmbeddingFunction(
-            model_name="all-MiniLM-L6-v2"
-        )
+        self.embedding_fn = embedding_functions.DefaultEmbeddingFunction()
         self.collection_name = "policy_documents"
         self.collection = self.client.get_or_create_collection(
             name=self.collection_name,
