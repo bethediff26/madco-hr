@@ -50,9 +50,10 @@ async def chat_api(request: QueryRequest):
     """Chat endpoint to query HR information."""
     try:
         # Import only when needed to reduce memory footprint at startup
+        import asyncio
         from app.agent import HRAgent
         agent = HRAgent()
-        result = agent.run(request.query)
+        result = await asyncio.to_thread(agent.run, request.query)
 
         return QueryResponse(
             response=result["response"],

@@ -135,7 +135,20 @@ class LLMClient:
         """
         logger = logging.getLogger(__name__)
 
-        # Try local Ollama first (local-first fallback)
+        # If configured for OpenRouter, call OpenRouter directly
+        if self.provider.lower() == "openrouter" and self.openrouter_key:
+            try:
+                logger.info("Calling OpenRouter API directly...")
+                openrouter_client = OpenRouterLLMClient(
+                    api_key=self.openrouter_key,
+                    model=self.openrouter_model
+                )
+                return openrouter_client.generate_response(prompt, system_prompt)
+            except Exception as e:
+                logger.error(f"OpenRouter API request failed: {type(e).__name__}: {e}")
+                return f"Error generating response: {type(e).__name__}. Please try rephrasing your question."
+
+        # Otherwise try local Ollama first (local-first fallback)
         try:
             logger.info("Attempting local Ollama inference...")
             ollama_client = OllamaLLMClient(base_url=self.ollama_url, model=self.ollama_model)
@@ -157,7 +170,6 @@ class LLMClient:
                 return response
             except Exception as e2:
                 logger.error(f"OpenRouter API fallback also failed: {type(e2).__name__}: {e2}")
-                # Return a graceful error message instead of bubbling up the exception
                 return f"Error generating response: {type(e2).__name__}. Please try rephrasing your question."
 
     def parse_tool_call(self, response_text: str) -> dict | None:
