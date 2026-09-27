@@ -6,3 +6,4 @@ fastmcp==3.4.7
 gunicorn==21.2.0
 numpy<2.0.0
 uvicorn>=0.22.0
+pypdf>=3.0.0

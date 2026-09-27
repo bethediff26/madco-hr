@@ -2,8 +2,11 @@
 
 import os
 import re
+import logging
 from typing import List, Dict, Any, Optional
 from dataclasses import dataclass
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -45,16 +48,21 @@ class PolicyParser:
         ext = os.path.splitext(file_path)[1].lower()
 
         if ext == ".pdf":
-            import pypdf
-            with open(file_path, 'rb') as f:
-                pdf_reader = pypdf.PdfReader(f)
-                # Extract text from all pages
-                full_text = ""
-                for page_num in range(len(pdf_reader.pages)):
-                    page = pdf_reader.pages[page_num]
-                    full_text += page.extract_text() or ""
-            return full_text
+            try:
+                import pypdf
+                with open(file_path, 'rb') as f:
+                    pdf_reader = pypdf.PdfReader(f)
+                    # Extract text from all pages
+                    full_text = ""
+                    for page_num in range(len(pdf_reader.pages)):
+                        page = pdf_reader.pages[page_num]
+                        full_text += page.extract_text() or ""
+                return full_text
+            except ImportError:
+                logger.warning(f"pypdf not installed, unable to parse PDF file: {file_path}")
+                return ""
         elif ext == ".md":
+
             with open(file_path, 'r', encoding='utf-8') as f:
                 return f.read()
         else:
