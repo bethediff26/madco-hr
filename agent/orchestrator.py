@@ -73,12 +73,18 @@ class HRPolicyAgentOrchestrator:
         ):
             return "employee_profile"
 
+        if any(term in query_lower for term in ["draft email", "draft an email", "draft hr email", "write email", "email template", "draft_hr_email"]):
+            return "draft_hr_email"
+        if any(term in query_lower for term in ["create ticket", "open ticket", "file ticket", "submit ticket", "create a ticket", "create_mock_hr_ticket", "create mock ticket", "mock_hr_ticket"]):
+            return "create_hr_ticket"
+
         if intent["contains_employee_id"] and "benefit" in query_lower:
             return "benefits_question_handling"
         if intent["contains_employee_id"] and "ticket" in query_lower:
             return "hr_case_triage"
         if not intent["contains_employee_id"] and "policy" in query_lower:
             return "policy_search"
+
         if any(
             term in query_lower
             for term in [
@@ -155,8 +161,13 @@ class HRPolicyAgentOrchestrator:
                 return await self._execute_onboarding_checklist(user_query, employee_id, trace)
             elif workflow_type == "hr_case_triage":
                 return await self._execute_hr_case_triage(user_query, employee_id, trace)
+            elif workflow_type == "draft_hr_email":
+                return await self._execute_draft_hr_email(user_query, employee_id, trace)
+            elif workflow_type == "create_hr_ticket":
+                return await self._execute_create_hr_ticket(user_query, employee_id, trace)
             else:
                 raise ValueError(f"Unknown workflow type: {workflow_type}")
+
 
         except Exception as e:
             logger.error(f"Error executing workflow {workflow_type}: {e}")
@@ -693,9 +704,122 @@ class HRPolicyAgentOrchestrator:
             }
         except Exception as e:
             logger.error(f"HR case triage workflow failed: {e}")
+    async def _execute_draft_hr_email(self, query: str, employee_id: Optional[str], trace: AgentTrace) -> Dict[str, Any]:
+        """Draft an HR email template using MCP tool."""
+        try:
+            recipient = "Employee"
+            if employee_id:
+                emp = await self.mcp_client.lookup_employee_profile(employee_id)
+                recipient = emp.get("name", employee_id)
+                trace.tools_selected.append("get_employee")
+                trace.tool_arguments.append({"employee_id": employee_id})
+                trace.tool_outputs.append(emp)
+
+            email_type = "pto_request" if "pto" in query.lower() or "leave" in query.lower() else "policy_update" if "policy" in query.lower() else "hr_communication"
+            email_result = await self.mcp_client.draft_hr_email(
+                email_type=email_type,
+                recipient_name=recipient,
+                template_data={"query": query, "employee_id": employee_id}
+            )
+            trace.tools_selected.append("draft_hr_email")
+            trace.tool_arguments.append({
+                "email_type": email_type,
+                "recipient_name": recipient
+            })
+            trace.tool_outputs.append(email_result)
+            trace.final_basis = "MCP email drafting tool"
+
+            # Check if ticket was also requested
+            ticket_msg = ""
+            if any(term in query.lower() for term in ["ticket", "mock_hr_ticket", "create_mock_hr_ticket"]):
+                ticket_res = await self.mcp_client.create_mock_hr_ticket(
+                    ticket_type="email_followup",
+                    summary=f"HR Email Draft: {email_result.get('subject', 'HR Request')}",
+                    details=query,
+                    assignee_id=employee_id
+                )
+                trace.tools_selected.append("create_mock_hr_ticket")
+                trace.tool_arguments.append({"employee_id": employee_id, "summary": query})
+                trace.tool_outputs.append(ticket_res)
+                ticket_msg = f"\n\nMock HR Ticket Created:\n• **Ticket ID:** {ticket_res.get('ticket_id')}\n• **Status:** {ticket_res.get('status')}\n• **Assignee:** {ticket_res.get('assignee_id') or 'HR Team'}"
+
+            message = (
+                f"HR Email Draft:\n"
+                f"• **Recipient:** {recipient}\n"
+                f"• **Subject:** {email_result.get('subject')}\n"
+                f"• **Template Type:** {email_result.get('template_used')}\n\n"
+                f"**Email Body:**\n{email_result.get('body')}"
+                f"{ticket_msg}"
+            )
+
+            return {
+                "status": "ok",
+                "message": message,
+                "citations": [],
+                "trace": self._format_trace(trace)
+            }
+        except Exception as e:
+            logger.error(f"Draft HR email workflow failed: {e}")
+            raise
+
+    async def _execute_create_hr_ticket(self, query: str, employee_id: Optional[str], trace: AgentTrace) -> Dict[str, Any]:
+        """Create a mock HR ticket using MCP tool."""
+        try:
+            summary = query.replace("create mock ticket", "").replace("create ticket", "").replace("create_mock_hr_ticket", "").strip() or "General HR Request"
+            ticket_res = await self.mcp_client.create_mock_hr_ticket(
+                ticket_type="hr_support",
+                summary=summary,
+                details=query,
+                assignee_id=employee_id
+            )
+            trace.tools_selected.append("create_mock_hr_ticket")
+            trace.tool_arguments.append({
+                "ticket_type": "hr_support",
+                "summary": summary,
+                "employee_id": employee_id
+            })
+            trace.tool_outputs.append(ticket_res)
+            trace.final_basis = "MCP ticket creation tool"
+
+            # Check if email draft was also requested
+            email_msg = ""
+            if any(term in query.lower() for term in ["email", "draft_hr_email", "draft email"]):
+                recipient = "HR Support Team"
+                if employee_id:
+                    emp = await self.mcp_client.lookup_employee_profile(employee_id)
+                    recipient = emp.get("name", employee_id)
+                email_res = await self.mcp_client.draft_hr_email(
+                    email_type="pto_request" if "pto" in query.lower() else "policy_update",
+                    recipient_name=recipient,
+                    template_data={"query": query}
+                )
+                trace.tools_selected.append("draft_hr_email")
+                trace.tool_arguments.append({"recipient_name": recipient})
+                trace.tool_outputs.append(email_res)
+                email_msg = f"\n\nHR Email Draft:\n• **Subject:** {email_res.get('subject')}\n• **Body:**\n{email_res.get('body')}"
+
+            message = (
+                f"Mock HR Ticket Created Successfully:\n"
+                f"• **Ticket ID:** {ticket_res.get('ticket_id')}\n"
+                f"• **Status:** {ticket_res.get('status', 'open').capitalize()}\n"
+                f"• **Summary:** {ticket_res.get('summary')}\n"
+                f"• **Assignee:** {ticket_res.get('assignee_id') or 'HR Queue'}\n"
+                f"• **Priority:** {ticket_res.get('priority', 'medium').capitalize()}"
+                f"{email_msg}"
+            )
+
+            return {
+                "status": "ok",
+                "message": message,
+                "citations": [],
+                "trace": self._format_trace(trace)
+            }
+        except Exception as e:
+            logger.error(f"Create HR ticket workflow failed: {e}")
             raise
 
     def _format_trace(self, trace: AgentTrace) -> Dict[str, Any]:
+
         """Format the trace for operational visibility."""
         return {
             "user_intent": trace.user_intent,
