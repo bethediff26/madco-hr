@@ -1,6 +1,6 @@
 # Agentic HR Assistant - Evaluation Benchmark Report
 
-**Generated:** 2026-09-28 04:32:39 UTC  
+**Generated:** 2026-09-28 04:59:22 UTC  
 **Overall Pass Rate:** 100.0%  
 **Average Latency:** 0.023s  
 
@@ -18,10 +18,10 @@
 
 | ID | Category | Latency | Groundedness | Tool Accuracy | Completion | Status |
 | :--- | :--- | :---: | :---: | :---: | :---: | :---: |
-| CASE-01 | PTO Guidance | 0.174s | 100% | 100% | 100% | ✅ PASS |
+| CASE-01 | PTO Guidance | 0.173s | 100% | 100% | 100% | ✅ PASS |
 | CASE-02 | Remote Work Eligibility | 0.005s | 100% | 100% | 100% | ✅ PASS |
 | CASE-03 | Benefits Triage | 0.004s | 100% | 100% | 100% | ✅ PASS |
-| CASE-04 | Expense Compliance | 0.0s | 100% | 100% | 100% | ✅ PASS |
+| CASE-04 | Expense Compliance | 0.001s | 100% | 100% | 100% | ✅ PASS |
 | CASE-05 | Safety & Harassment Triage | 0.0s | 100% | 100% | 67% | ✅ PASS |
 | CASE-06 | Data Security Incident | 0.0s | 100% | 100% | 100% | ✅ PASS |
 | CASE-07 | Holiday Policy RAG | 0.003s | 100% | 100% | 100% | ✅ PASS |

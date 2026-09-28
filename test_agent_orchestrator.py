@@ -9,6 +9,8 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'agent'))
 from orchestrator import HRPolicyAgentOrchestrator
 from workflows import workflows
 
+import asyncio
+
 def test_agent_orchestrator():
     """Test the agent orchestrator with various queries."""
     print("=== Testing Agent Orchestrator ===")
@@ -18,34 +20,34 @@ def test_agent_orchestrator():
 
     # Test 1: Simple policy search
     print("\n1. Testing simple policy search...")
-    result = orchestrator.process_user_query("What is the remote work policy?")
+    result = asyncio.run(orchestrator.process_user_query("What is the remote work policy?"))
     print(f"Status: {result['status']}")
     print(f"Message preview: {result['message'][:100]}...")
 
     # Test 2: Multi-step workflow - remote work eligibility
     print("\n2. Testing remote work eligibility workflow...")
-    result = orchestrator.process_user_query(
+    result = asyncio.run(orchestrator.process_user_query(
         "Check my remote work eligibility",
         employee_id="EMP-12345"
-    )
+    ))
     print(f"Status: {result['status']}")
     print(f"Message preview: {result['message'][:100]}...")
 
     # Test 3: PTO request guidance
     print("\n3. Testing PTO request guidance workflow...")
-    result = orchestrator.process_user_query(
+    result = asyncio.run(orchestrator.process_user_query(
         "How do I submit a PTO request?",
         employee_id="EMP-67890"
-    )
+    ))
     print(f"Status: {result['status']}")
     print(f"Message preview: {result['message'][:100]}...")
 
     # Test 4: Benefits question
     print("\n4. Testing benefits question handling...")
-    result = orchestrator.process_user_query(
+    result = asyncio.run(orchestrator.process_user_query(
         "What health insurance options do I have?",
         employee_id="EMP-11111"
-    )
+    ))
     print(f"Status: {result['status']}")
     print(f"Message preview: {result['message'][:100]}...")
 

@@ -73,9 +73,16 @@ class HRPolicyAgentOrchestrator:
         ):
             return "employee_profile"
 
-        if any(term in query_lower for term in ["draft email", "draft an email", "draft hr email", "write email", "email template", "draft_hr_email"]):
+        # Email drafting intent (flexible matching: email + draft/write/compose/template etc.)
+        if "email" in query_lower and any(w in query_lower for w in ["draft", "write", "compose", "template", "send", "generate", "create", "request"]):
             return "draft_hr_email"
-        if any(term in query_lower for term in ["create ticket", "open ticket", "file ticket", "submit ticket", "create a ticket", "create_mock_hr_ticket", "create mock ticket", "mock_hr_ticket"]):
+        if any(term in query_lower for term in ["draft_hr_email", "email template"]):
+            return "draft_hr_email"
+
+        # Direct ticket creation intent (flexible matching: ticket + create/open/file/submit/mock etc.)
+        if "ticket" in query_lower and any(w in query_lower for w in ["create", "open", "file", "submit", "raise", "mock", "new"]):
+            return "create_hr_ticket"
+        if any(term in query_lower for term in ["create_mock_hr_ticket", "mock ticket"]):
             return "create_hr_ticket"
 
         if intent["contains_employee_id"] and "benefit" in query_lower:
@@ -708,18 +715,61 @@ class HRPolicyAgentOrchestrator:
         """Draft an HR email template using MCP tool."""
         try:
             recipient = "Employee"
+            employee_name = "Employee"
+            manager_name = None
+            manager_id = None
+            pto_balance = None
+
             if employee_id:
                 emp = await self.mcp_client.lookup_employee_profile(employee_id)
-                recipient = emp.get("name", employee_id)
+                employee_name = emp.get("name", employee_id)
+                pto_balance = emp.get("pto_balance")
+                manager_id = emp.get("manager_id")
                 trace.tools_selected.append("get_employee")
                 trace.tool_arguments.append({"employee_id": employee_id})
                 trace.tool_outputs.append(emp)
 
+                if manager_id and any(term in query.lower() for term in ["manager", "supervisor", "lead"]):
+                    try:
+                        mgr = await self.mcp_client.lookup_employee_profile(manager_id)
+                        manager_name = mgr.get("name")
+                        recipient = f"{manager_name} (Manager)" if manager_name else f"Manager ({manager_id})"
+                    except Exception:
+                        recipient = f"Manager ({manager_id})"
+                else:
+                    recipient = employee_name
+
             email_type = "pto_request" if "pto" in query.lower() or "leave" in query.lower() else "policy_update" if "policy" in query.lower() else "hr_communication"
+
+            template_data = {
+                "query": query,
+                "employee_id": employee_id,
+                "employee_name": employee_name,
+                "sender_name": employee_name,
+            }
+
+            citations = []
+            if email_type == "pto_request":
+                citations = ["pto.md"]
+                trace.retrieved_sources = ["pto.md"]
+                mgr_salutation = manager_name or "Manager"
+                balance_sentence = f" My current available PTO balance is {pto_balance} days." if pto_balance is not None else ""
+                custom_subject = f"PTO Approval Request - {employee_name}" + (f" ({employee_id})" if employee_id else "")
+                custom_body = (
+                    f"Dear {mgr_salutation},\n\n"
+                    f"I would like to request your approval for upcoming Paid Time Off (PTO).{balance_sentence}\n\n"
+                    f"I have submitted the formal request in Workday in accordance with the company PTO policy. "
+                    f"Please review and approve when you have a moment, or let me know if you need any additional details.\n\n"
+                    f"Thank you,\n"
+                    f"{employee_name}"
+                )
+                template_data["subject"] = custom_subject
+                template_data["body"] = custom_body
+
             email_result = await self.mcp_client.draft_hr_email(
                 email_type=email_type,
                 recipient_name=recipient,
-                template_data={"query": query, "employee_id": employee_id}
+                template_data=template_data
             )
             trace.tools_selected.append("draft_hr_email")
             trace.tool_arguments.append({
@@ -743,19 +793,26 @@ class HRPolicyAgentOrchestrator:
                 trace.tool_outputs.append(ticket_res)
                 ticket_msg = f"\n\nMock HR Ticket Created:\n• **Ticket ID:** {ticket_res.get('ticket_id')}\n• **Status:** {ticket_res.get('status')}\n• **Assignee:** {ticket_res.get('assignee_id') or 'HR Team'}"
 
+            bullets = [
+                f"• **Recipient:** {recipient}",
+                f"• **Sender:** {employee_name}" + (f" ({employee_id})" if employee_id else ""),
+                f"• **Subject:** {email_result.get('subject')}",
+                f"• **Template Type:** {email_result.get('template_used')}",
+            ]
+            meta_text = "\n".join(bullets)
+
             message = (
                 f"HR Email Draft:\n"
-                f"• **Recipient:** {recipient}\n"
-                f"• **Subject:** {email_result.get('subject')}\n"
-                f"• **Template Type:** {email_result.get('template_used')}\n\n"
-                f"**Email Body:**\n{email_result.get('body')}"
+                f"{meta_text}\n\n"
+                f"**Email Body:**\n\n"
+                f"{email_result.get('body')}"
                 f"{ticket_msg}"
             )
 
             return {
                 "status": "ok",
                 "message": message,
-                "citations": [],
+                "citations": citations,
                 "trace": self._format_trace(trace)
             }
         except Exception as e:
@@ -834,6 +891,13 @@ class HRPolicyAgentOrchestrator:
     async def process_user_query(self, user_query: str, employee_id: Optional[str] = None) -> Dict[str, Any]:
         """Main entry point for processing user queries with full orchestration."""
         logger.info(f"Processing user query: '{user_query}'")
+
+        # Extract employee ID if not provided explicitly
+        if not employee_id:
+            import re
+            emp_match = re.search(r"\b(emp-\d+)\b", user_query, re.IGNORECASE)
+            if emp_match:
+                employee_id = emp_match.group(1).upper()
 
         # Interpret user intent
         intent = await self.interpret_user_intent(user_query)

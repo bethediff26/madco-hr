@@ -516,9 +516,12 @@ async def draft_hr_email(email_type: str, recipient_name: str, template_data: Di
 
     template = templates.get(email_type, {"subject": "HR Communication", "body": f"Hello {recipient_name},\n\nThis is a test message."})
 
+    subject = (template_data.get("subject") if template_data and template_data.get("subject") else template["subject"])
+    body = (template_data.get("body") if template_data and template_data.get("body") else template["body"])
+
     return {
-        "subject": template["subject"],
-        "body": template["body"],
+        "subject": subject,
+        "body": body,
         "template_used": email_type
     }
 
