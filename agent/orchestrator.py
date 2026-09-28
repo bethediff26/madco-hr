@@ -69,9 +69,10 @@ class HRPolicyAgentOrchestrator:
         query_lower = intent["query"].lower()
         if intent["contains_employee_id"] and any(
             phrase in query_lower
-            for phrase in ["employee profile", "employee details", "employee information"]
+            for phrase in ["employee profile", "employee details", "employee information", "lookup employee", "lookup profile", "profile for"]
         ):
             return "employee_profile"
+
         if intent["contains_employee_id"] and "benefit" in query_lower:
             return "benefits_question_handling"
         if intent["contains_employee_id"] and "ticket" in query_lower:
@@ -183,16 +184,21 @@ class HRPolicyAgentOrchestrator:
                 raise ValueError(employee_result["error"])
             trace.final_basis = "Employee profile lookup"
 
-            profile = ", ".join(
-                f"{field.replace('_', ' ')}: {value}"
-                for field, value in employee_result.items()
-            )
+            bullets = []
+            for field, value in employee_result.items():
+                if field == "error":
+                    continue
+                label = field.replace('_', ' ').title().replace("Id", "ID").replace("Pto", "PTO")
+                bullets.append(f"• **{label}:** {value}")
+
+            profile_text = "\n".join(bullets)
             return {
                 "status": "ok",
-                "message": f"Employee profile for {employee_id}: {profile}",
+                "message": f"Employee profile for {employee_id}:\n{profile_text}",
                 "citations": [],
                 "trace": self._format_trace(trace)
             }
+
         except ValueError as e:
             trace.tools_selected.append("get_employee")
             trace.tool_arguments.append({"employee_id": employee_id})
