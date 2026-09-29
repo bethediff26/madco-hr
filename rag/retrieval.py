@@ -97,16 +97,41 @@ class PurePythonPolicyStore:
         if not content_words:
             content_words = q_words
 
+        def _stems(words):
+            s = set(words)
+            for w in words:
+                if len(w) > 3 and w.endswith('s'):
+                    s.add(w[:-1])
+                if len(w) > 4 and w.endswith('es'):
+                    s.add(w[:-2])
+            return s
+
+        q_stems = _stems(content_words)
+
         scored = []
         for i, (doc_id, doc, meta, emb) in enumerate(zip(self.ids, self.documents, self.metadatas, self.embeddings)):
             if allowed_docs is not None and meta.get("doc_id") not in allowed_docs:
                 continue
 
             dot = sum(a * b for a, b in zip(q_emb, emb))
-            doc_words = set(re.findall(r'\b\w+\b', (doc + " " + meta.get("doc_title", "")).lower()))
-            overlap = len(content_words & doc_words)
-            sim = dot + (overlap * 0.25)
-            dist = max(0.0, 1.0 - (sim / (1.0 + overlap * 0.25)))
+            section_title = meta.get("section", "")
+            doc_text = (doc + " " + meta.get("doc_title", "") + " " + section_title).lower()
+            doc_words = set(re.findall(r'\b\w+\b', doc_text))
+            doc_stems = _stems(doc_words)
+
+            overlap = len(q_stems & doc_stems)
+
+            # Bonus for section title matching key query terms
+            title_words = set(re.findall(r'\b\w+\b', section_title.lower()))
+            title_overlap = len(q_stems & _stems(title_words))
+
+            # Listing bonus: if query asks for a list/schedule/observance and chunk contains a bulleted list
+            is_listing_query = any(w in content_words for w in ["list", "what", "which", "schedule", "observed", "annual", "annually"])
+            has_bullets = "\n- " in doc or "- " in doc
+            listing_bonus = 0.35 if (is_listing_query and has_bullets) else 0.0
+
+            sim = dot + (overlap * 0.25) + (title_overlap * 0.35) + listing_bonus
+            dist = max(0.0, 1.0 - (sim / (1.0 + overlap * 0.25 + title_overlap * 0.35 + listing_bonus)))
             scored.append((dist, doc_id, doc, meta))
 
         scored.sort(key=lambda x: x[0])
@@ -289,6 +314,14 @@ class PolicyRAG:
         """Identify if query specifically asks for a particular policy."""
         lower = question.lower()
 
+        # Multi-document compound queries should NOT be restricted to a single policy
+        if any(k in lower for k in ["stipend", "reimbursement"]) and any(k in lower for k in ["remote", "telework", "equipment"]):
+            return None
+
+        # Holidays queries: e.g. "list of holidays", "company holidays", "paid holidays", "holiday policy"
+        if any(k in lower for k in ["holiday", "holidays"]) and not any(k in lower for k in ["pto", "vacation", "bereavement", "parental"]):
+            return ["doc_md_holidays_policy.md"]
+
         if "equipment" in lower and not any(k in lower for k in ["stipend", "reimbursement"]):
             return ["doc_md_equipment_policy.md"]
 
@@ -298,7 +331,7 @@ class PolicyRAG:
         if any(k in lower for k in ["code of conduct", "conduct policy", "ethics policy", "misconduct"]):
             return ["doc_md_code_of_conduct.md"]
 
-        if any(k in lower for k in ["pto policy", "vacation policy", "paid time off policy"]):
+        if any(k in lower for k in ["pto policy", "vacation policy", "paid time off policy", "pto balance", "paid time off"]) and not any(k in lower for k in ["holiday", "holidays"]):
             return ["doc_md_pto_policy.md"]
 
         if any(k in lower for k in ["parental leave", "bereavement", "jury duty", "fmla", "leave policy"]) and "pto" not in lower:
@@ -307,10 +340,7 @@ class PolicyRAG:
         if any(k in lower for k in ["expense policy", "reimbursement policy", "travel policy", "per diem"]):
             return ["doc_md_expense_policy.md"]
 
-        if any(k in lower for k in ["holidays policy", "holiday policy"]):
-            return ["doc_md_holidays_policy.md"]
-
-        if any(k in lower for k in ["onboarding policy", "new hire policy"]):
+        if any(k in lower for k in ["onboarding policy", "new hire policy", "onboarding"]):
             return ["doc_md_onboarding_policy.md"]
 
         if any(k in lower for k in ["benefits guide", "benefits policy"]):

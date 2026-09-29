@@ -100,51 +100,29 @@ class PolicyParser:
         Returns:
             List of (section_title, section_text) tuples
         """
-        pattern = r'^(#{1,2})\s+(.+)$'
-
-        # Split by headers
+        pattern = r'(?m)^(#{1,3})\s+(.+)$'
         parts = re.split(pattern, text)
+        if len(parts) <= 1:
+            return [{"title": "General", "text": text, "level": 1}]
 
         sections = []
-        current_section_text = ""
-        prev_header_level = 0
-        prev_header_text = ""
-
-        for i, part in enumerate(parts):
-            # Skip empty parts or pure header lines
-            if not part.strip() and (i < len(parts) - 1 and re.match(pattern, parts[i + 1].strip())):
-                continue
-
-            stripped = part.strip()
-
-            # Check if this is a header
-            match = re.match(pattern, stripped)
-            if match:
-                level = int(match.group(1))
-                heading = match.group(2).strip()
-
-                if current_section_text and len(current_section_text.split()) > 0:
-                    sections.append({
-                        "title": f"Section {heading}",
-                        "text": current_section_text,
-                        "level": prev_header_level
-                    })
-
-                # Start new section
-                current_section_text = ""
-            else:
-                if current_section_text == "":
-                    current_section_text = stripped + "\n"
-                else:
-                    current_section_text += stripped + "\n"
-
-        # Add final section content
-        if len(current_section_text.split()) > 0:
+        if parts[0].strip():
             sections.append({
-                "title": f"Section {prev_header_text}",
-                "text": current_section_text,
-                "level": prev_header_level
+                "title": "Overview",
+                "text": parts[0].strip(),
+                "level": 1
             })
+
+        for i in range(1, len(parts), 3):
+            level = len(parts[i])
+            heading = parts[i + 1].strip()
+            body = parts[i + 2].strip() if i + 2 < len(parts) else ""
+            if body:
+                sections.append({
+                    "title": f"Section {heading}",
+                    "text": f"{heading}\n\n{body}",
+                    "level": level
+                })
 
         return sections
 
