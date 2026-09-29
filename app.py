@@ -62,7 +62,9 @@ HTML_TEMPLATE = '''
         <div class="demos-title">Agentic Demo Workflows (Click to run):</div>
         <button class="demo-btn" onclick="runDemo('can you give me the pto balance for employee EMP-101 and guide me on requesting 3 days off next week?')">🏖️ Task 1: PTO Balance & Request (EMP-101)</button>
         <button class="demo-btn" onclick="runDemo('can employee EMP-102 work remotely from another state for six weeks?')">🌍 Task 2: Remote Work Eligibility (EMP-102)</button>
-        <button class="demo-btn" onclick="runDemo('what is the expense reimbursement limit for home office equipment for EMP-103?')">💻 Task 3: Expense Policy (EMP-103)</button>
+        <button class="demo-btn" onclick="runDemo('draft an HR email for employee EMP-103 requesting PTO approval from manager')">✉️ Task 3: Draft Manager Approval Email (EMP-103)</button>
+        <button class="demo-btn" onclick="runDemo('create a mock hr ticket for laptop replacement for EMP-101')">🎫 Task 4: Hardware Ticket Creation (EMP-101)</button>
+        <button class="demo-btn" onclick="runDemo('what is the expense reimbursement limit for home office equipment for EMP-103?')">💻 Task 5: Expense Policy (EMP-103)</button>
     </div>
 
     <div class="chat-container" id="chatContainer"></div>
