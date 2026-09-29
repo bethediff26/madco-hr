@@ -550,6 +550,9 @@ async def check_policy_compliance(request_type: str, employee_id: str, request_d
     if request_type == "remote_work":
         if not employee_data.get("remote_work_eligible", False):
             issues.append("Employee is not eligible for remote work")
+        duration_weeks = request_data.get("duration_weeks") or request_data.get("weeks", 0)
+        if duration_weeks and duration_weeks >= 4:
+            recommendations.append("Out-of-state stays exceeding 4 weeks require Department VP approval and HR/Legal review due to multi-state tax and payroll implications")
 
     if request_type == "expense":
         recommendations.append("Confirm the applicable approval threshold and retain required receipts")

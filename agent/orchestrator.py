@@ -267,8 +267,16 @@ class HRPolicyAgentOrchestrator:
                 trace.tool_outputs.append(policy_result)
                 trace.retrieved_sources.extend(policy_result.get("citations", []))
 
-            duration_match = re.search(r"(\d+)\s+weeks?", query.lower())
-            duration_weeks = int(duration_match.group(1)) if duration_match else None
+            word_to_num = {
+                "one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6,
+                "seven": 7, "eight": 8, "nine": 9, "ten": 10, "twelve": 12
+            }
+            duration_match = re.search(r"(\d+|one|two|three|four|five|six|seven|eight|nine|ten|twelve)\s+weeks?", query.lower())
+            if duration_match:
+                val = duration_match.group(1)
+                duration_weeks = word_to_num.get(val, int(val) if val.isdigit() else None)
+            else:
+                duration_weeks = None
             location_scope = (
                 "international" if "country" in query.lower() or "international" in query.lower()
                 else "another_state" if "state" in query.lower()
@@ -315,12 +323,25 @@ class HRPolicyAgentOrchestrator:
 
                 compliance_status = "passes the current remote-work eligibility check" if compliance_result["is_compliant"] else "does not pass the current remote-work eligibility check"
                 duration_text = f" for {duration_weeks} weeks" if duration_weeks else ""
+                
+                tax_note = ""
+                if duration_weeks and duration_weeks >= 4:
+                    tax_note = (
+                        " Note: Because the policy corpus does not contain a dedicated out-of-state tax schedule, "
+                        "extended stays exceeding 4 weeks introduce potential multi-state tax nexus and payroll withholding considerations, "
+                        "meaning Department VP approval alongside HR/Legal review is required prior to travel."
+                    )
+                else:
+                    tax_note = (
+                        " The policy corpus does not contain a dedicated tax or location-compliance policy, "
+                        "so confirm payroll, tax, and cross-border requirements with HR or Legal before travel."
+                    )
+
                 message = (
                     f"Employee {employee_id} {compliance_status}{duration_text}. "
                     "Next steps: submit the remote-work request in Workday with the destination and dates, "
-                    "obtain manager approval, and follow VPN, encryption, and data-handling requirements. "
-                    "The policy corpus does not contain a dedicated tax or location-compliance policy, "
-                    "so confirm payroll, tax, and cross-border requirements with HR or Legal before travel."
+                    "obtain manager approval, and follow VPN, encryption, and data-handling requirements."
+                    f"{tax_note}"
                 )
 
             trace.final_basis = "Remote work, data security, employee profile, and compliance checks"

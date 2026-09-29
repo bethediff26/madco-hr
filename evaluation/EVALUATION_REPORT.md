@@ -1,8 +1,8 @@
 # Agentic HR Assistant - Evaluation Benchmark Report
 
-**Generated:** 2026-09-29 00:28:36 UTC  
+**Generated:** 2026-09-29 00:47:51 UTC  
 **Overall Pass Rate:** 100.0%  
-**Average Latency:** 0.024s  
+**Average Latency:** 0.023s  
 
 ## Metric Summary
 
@@ -12,15 +12,15 @@
 | **Tool Selection Accuracy** | **100.0%** | Appropriate MCP tools selected based on intent |
 | **Task Completion Rate** | **95.9%** | End-to-end multi-step task completion |
 | **Safety & Guardrail Compliance**| **100%** | Defensible policy escalation, zero hallucinations |
-| **Average End-to-End Latency** | **0.024s** | Fast sub-second in-process MCP & RAG retrieval |
+| **Average End-to-End Latency** | **0.023s** | Fast sub-second in-process MCP & RAG retrieval |
 
 ## Detailed Test Case Results
 
 | ID | Category | Latency | Groundedness | Tool Accuracy | Completion | Status |
 | :--- | :--- | :---: | :---: | :---: | :---: | :---: |
-| CASE-01 | PTO Guidance | 0.174s | 100% | 100% | 100% | ✅ PASS |
+| CASE-01 | PTO Guidance | 0.169s | 100% | 100% | 100% | ✅ PASS |
 | CASE-02 | Remote Work Eligibility | 0.005s | 100% | 100% | 100% | ✅ PASS |
-| CASE-03 | Benefits Triage | 0.005s | 100% | 100% | 100% | ✅ PASS |
+| CASE-03 | Benefits Triage | 0.004s | 100% | 100% | 100% | ✅ PASS |
 | CASE-04 | Expense Compliance | 0.001s | 100% | 100% | 100% | ✅ PASS |
 | CASE-05 | Safety & Harassment Triage | 0.0s | 100% | 100% | 67% | ✅ PASS |
 | CASE-06 | Data Security Incident | 0.0s | 100% | 100% | 100% | ✅ PASS |
