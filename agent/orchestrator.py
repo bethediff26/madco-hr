@@ -265,7 +265,7 @@ class HRPolicyAgentOrchestrator:
                 trace.tools_selected.append("search_policies")
                 trace.tool_arguments.append({"query": policy_query})
                 trace.tool_outputs.append(policy_result)
-                trace.retrieved_sources.extend(policy_result.get("citations", []))
+                trace.retrieved_sources = self._dedupe_citations(trace.retrieved_sources + policy_result.get("citations", []))
 
             word_to_num = {
                 "one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6,
@@ -579,7 +579,7 @@ class HRPolicyAgentOrchestrator:
                 trace.tools_selected.append("search_policies")
                 trace.tool_arguments.append({"query": policy_query})
                 trace.tool_outputs.append(policy_result)
-                trace.retrieved_sources.extend(policy_result.get("citations", []))
+                trace.retrieved_sources = self._dedupe_citations(trace.retrieved_sources + policy_result.get("citations", []))
 
             profile = None
             if employee_id:
@@ -691,7 +691,7 @@ class HRPolicyAgentOrchestrator:
                 trace.tools_selected.append("search_policies")
                 trace.tool_arguments.append({"query": policy_query})
                 trace.tool_outputs.append(policy_result)
-                trace.retrieved_sources.extend(policy_result.get("citations", []))
+                trace.retrieved_sources = self._dedupe_citations(trace.retrieved_sources + policy_result.get("citations", []))
 
             if employee_id:
                 employee_result = await self.mcp_client.lookup_employee_profile(employee_id)
@@ -896,15 +896,30 @@ class HRPolicyAgentOrchestrator:
             logger.error(f"Create HR ticket workflow failed: {e}")
             raise
 
-    def _format_trace(self, trace: AgentTrace) -> Dict[str, Any]:
+    @staticmethod
+    def _dedupe_citations(citations: List[Any]) -> List[Any]:
+        if not citations:
+            return []
+        deduped = []
+        seen = set()
+        for c in citations:
+            if isinstance(c, dict):
+                key = c.get("doc_title") or c.get("doc_id") or str(c)
+            else:
+                key = str(c)
+            if key not in seen:
+                seen.add(key)
+                deduped.append(c)
+        return deduped
 
+    def _format_trace(self, trace: AgentTrace) -> Dict[str, Any]:
         """Format the trace for operational visibility."""
         return {
             "user_intent": trace.user_intent,
             "tools_selected": trace.tools_selected,
             "tool_arguments": trace.tool_arguments,
             "tool_outputs": trace.tool_outputs,
-            "retrieved_sources": trace.retrieved_sources,
+            "retrieved_sources": self._dedupe_citations(trace.retrieved_sources),
             "final_basis": trace.final_basis,
             "escalation_decision": trace.escalation_decision
         }

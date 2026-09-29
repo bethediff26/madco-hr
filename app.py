@@ -96,14 +96,20 @@ HTML_TEMPLATE = '''
                 sources.appendChild(title);
 
                 const list = document.createElement('ul');
+                const seen = new Set();
                 citations.forEach(citation => {
-                    const item = document.createElement('li');
-                    const text = typeof citation === 'string' ? citation : (citation.title || citation.doc_title || citation.document || JSON.stringify(citation));
-                    item.textContent = text;
-                    list.appendChild(item);
+                    const text = typeof citation === 'string' ? citation : (citation.doc_title || citation.title || citation.document || JSON.stringify(citation));
+                    if (text && !seen.has(text)) {
+                        seen.add(text);
+                        const item = document.createElement('li');
+                        item.textContent = text;
+                        list.appendChild(item);
+                    }
                 });
-                sources.appendChild(list);
-                messageDiv.appendChild(sources);
+                if (seen.size > 0) {
+                    sources.appendChild(list);
+                    messageDiv.appendChild(sources);
+                }
             }
 
             container.appendChild(messageDiv);

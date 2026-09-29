@@ -442,16 +442,23 @@ class PolicyRAG:
 
 
         citations = []
-        for match in deduped[:5]:
+        seen_docs = set()
+        for match in deduped:
+            doc_id = match.get("doc_id")
+            if not doc_id or doc_id in seen_docs:
+                continue
+            seen_docs.add(doc_id)
             snippet = (match.get("snippet") or "").strip().replace("\n", " ")
             snippet = snippet[:220] + ("..." if len(snippet) > 220 else "")
             citations.append({
-                "doc_id": match.get("doc_id"),
+                "doc_id": doc_id,
                 "doc_title": match.get("doc_title"),
                 "section": match.get("section"),
                 "snippet": snippet,
                 "relevance_score": round(float(match.get("relevance_score", 0.0) or 0.0), 4),
             })
+            if len(citations) >= 5:
+                break
 
         answer = self._build_policy_answer(question_text, deduped)
         return {
