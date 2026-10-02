@@ -41,6 +41,16 @@ HTML_TEMPLATE = '''
         .sources { margin-top: 12px; padding-top: 8px; border-top: 1px solid #e2e8f0; font-size: 0.9em; }
         .sources-title { font-weight: 600; color: #475569; margin-bottom: 4px; }
         .sources ul { margin: 0; padding-left: 20px; color: #64748b; }
+        .trace-box { margin-top: 12px; border: 1px solid #cbd5e1; border-radius: 6px; background-color: #f8fafc; font-size: 0.85em; overflow: hidden; }
+        .trace-box summary { padding: 8px 12px; font-weight: 600; color: #1e40af; cursor: pointer; background: #f1f5f9; user-select: none; display: flex; align-items: center; justify-content: space-between; }
+        .trace-box summary:hover { background: #e2e8f0; }
+        .trace-content { padding: 10px 14px; border-top: 1px solid #e2e8f0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace; }
+        .trace-step { margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px dashed #cbd5e1; }
+        .trace-step:last-child { margin-bottom: 0; padding-bottom: 0; border-bottom: none; }
+        .tool-badge { display: inline-block; background-color: #2563eb; color: #ffffff; padding: 2px 7px; border-radius: 4px; font-weight: 600; font-size: 0.85em; font-family: monospace; }
+        .trace-label { font-weight: 600; color: #475569; margin-top: 4px; font-size: 0.85em; }
+        .trace-json { background: #0f172a; color: #f8fafc; padding: 6px 10px; border-radius: 4px; font-size: 0.8em; overflow-x: auto; white-space: pre-wrap; word-break: break-all; margin: 4px 0 0 0; }
+        .trace-basis { color: #047857; font-weight: 500; margin-top: 8px; padding: 6px 10px; background: #ecfdf5; border-radius: 4px; border: 1px solid #a7f3d0; font-size: 0.9em; }
         .input-container { display: flex; gap: 8px; }
         #query { flex: 1; padding: 12px 16px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 1em; outline: none; }
         #query:focus { border-color: #2563eb; }
@@ -79,7 +89,15 @@ HTML_TEMPLATE = '''
     </div>
 
     <script>
-        function addMessage(message, isUser = false, citations = []) {
+        function escapeHtml(str) {
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+        }
+
+        function addMessage(message, isUser = false, citations = [], trace = null) {
             const container = document.getElementById('chatContainer');
             const messageDiv = document.createElement('div');
             messageDiv.className = `message ${isUser ? 'user-message' : 'bot-message'}`;
@@ -110,6 +128,53 @@ HTML_TEMPLATE = '''
                     sources.appendChild(list);
                     messageDiv.appendChild(sources);
                 }
+            }
+
+            if (!isUser && trace && trace.tools_selected && trace.tools_selected.length > 0) {
+                const traceBox = document.createElement('details');
+                traceBox.className = 'trace-box';
+
+                const summary = document.createElement('summary');
+                const toolCount = trace.tools_selected.length;
+                summary.innerHTML = `<span>🛠️ <strong>Agent Execution Trace</strong> (${toolCount} tool${toolCount > 1 ? 's' : ''} called)</span><span style="font-size: 0.8em; color: #64748b;">Click to expand ▾</span>`;
+                traceBox.appendChild(summary);
+
+                const content = document.createElement('div');
+                content.className = 'trace-content';
+
+                const seqDiv = document.createElement('div');
+                seqDiv.style.marginBottom = '10px';
+                seqDiv.innerHTML = `<strong>Tool Sequence:</strong> ` + trace.tools_selected.map(t => `<span class="tool-badge">${escapeHtml(t)}</span>`).join(' <span style="color:#94a3b8">➔</span> ');
+                content.appendChild(seqDiv);
+
+                trace.tools_selected.forEach((toolName, idx) => {
+                    const stepDiv = document.createElement('div');
+                    stepDiv.className = 'trace-step';
+
+                    const args = trace.tool_arguments && trace.tool_arguments[idx] ? trace.tool_arguments[idx] : null;
+                    const output = trace.tool_outputs && trace.tool_outputs[idx] ? trace.tool_outputs[idx] : null;
+
+                    let stepHtml = `<div><strong>Step ${idx + 1}:</strong> <span class="tool-badge">${escapeHtml(toolName)}</span></div>`;
+                    if (args) {
+                        stepHtml += `<div class="trace-label">Input Arguments:</div><pre class="trace-json">${escapeHtml(JSON.stringify(args, null, 2))}</pre>`;
+                    }
+                    if (output) {
+                        const outputStr = typeof output === 'object' ? JSON.stringify(output, null, 2) : String(output);
+                        stepHtml += `<div class="trace-label">Tool Output:</div><pre class="trace-json">${escapeHtml(outputStr.length > 300 ? outputStr.substring(0, 300) + '...' : outputStr)}</pre>`;
+                    }
+                    stepDiv.innerHTML = stepHtml;
+                    content.appendChild(stepDiv);
+                });
+
+                if (trace.final_basis) {
+                    const basisDiv = document.createElement('div');
+                    basisDiv.className = 'trace-basis';
+                    basisDiv.innerHTML = `<strong>Reasoning & Final Basis:</strong> ${escapeHtml(trace.final_basis)}`;
+                    content.appendChild(basisDiv);
+                }
+
+                traceBox.appendChild(content);
+                messageDiv.appendChild(traceBox);
             }
 
             container.appendChild(messageDiv);
@@ -150,7 +215,7 @@ HTML_TEMPLATE = '''
                 }
 
                 const data = await response.json();
-                addMessage(data.message || 'No response available', false, data.citations || []);
+                addMessage(data.message || 'No response available', false, data.citations || [], data.trace || null);
             } catch (error) {
                 addMessage('Network Error: ' + error.message);
             } finally {
