@@ -2,11 +2,10 @@
 
 ## 1. Public Deployed URLs
 
-- **Application Live URL**: [https://madco-hr.onrender.com](https://madco-hr.onrender.com)
-- **Health Check Endpoint**: [https://madco-hr.onrender.com/health](https://madco-hr.onrender.com/health)
-- **Chat API Endpoint**: `POST https://madco-hr.onrender.com/chat`
+- **Application Live URL**: [https://madco-hr-agent.onrender.com](https://madco-hr-agent.onrender.com)
+- **Health Check Endpoint**: [https://madco-hr-agent.onrender.com/health](https://madco-hr-agent.onrender.com/health)
+- **Chat API Endpoint**: `POST https://madco-hr-agent.onrender.com/chat`
 
-*(Note: If your service is deployed under an alternate Render subdomain, replace `madco-hr.onrender.com` with your specific assigned service URL from the Render Dashboard).*
 
 ---
 
