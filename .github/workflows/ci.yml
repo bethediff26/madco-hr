@@ -37,6 +37,9 @@ jobs:
       - name: Test MCP discovery and tool calls
         run: python -m pytest -q test_mcp_integration.py
 
+      - name: Run evaluation benchmark
+        run: python evaluation/eval_benchmark.py
+
       - name: Start application
         run: |
           python app.py > /tmp/madco-hr.log 2>&1 &

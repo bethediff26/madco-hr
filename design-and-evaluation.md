@@ -223,6 +223,11 @@ The orchestrator (`agent/orchestrator.py`) manages conversational state, intent 
   - The server pre-warms the policy store and orchestrator on startup (`app.py:269-274`).
   - Indexing executes in **0.02s**, allowing container spin-up to complete cleanly within seconds.
 - **Health Monitoring**: Dedicated `/health` endpoint validates MCP server readiness and responds with HTTP 200.
+- **CI/CD Automation (`.github/workflows/ci.yml`)**:
+  - Triggers on every push and pull request to `main`.
+  - Runs compilation checks (`py_compile`), MCP discovery and integration tests (`pytest test_mcp_integration.py`).
+  - Automatically runs the full 8-scenario evaluation benchmark suite (`python evaluation/eval_benchmark.py`).
+  - Spins up a test instance and validates live `/health` and `/chat` smoke responses.
 
 ---
 
